@@ -8,7 +8,7 @@ function buildEmbedUrl(videoId: string, muted: boolean) {
     autoplay: "1",
     enablejsapi: "1",
     playsinline: "1",
-    controls: "0",
+    controls: "1",
     rel: "0",
     modestbranding: "1",
     iv_load_policy: "3"
@@ -24,11 +24,13 @@ function buildEmbedUrl(videoId: string, muted: boolean) {
 export function YouTubePlayer({
   video,
   muted,
-  playing
+  playing,
+  interactive
 }: {
   video: VideoItem;
   muted: boolean;
   playing: boolean;
+  interactive: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -46,7 +48,7 @@ export function YouTubePlayer({
       <iframe
         ref={iframeRef}
         key={video.id}
-        className="pointer-events-none absolute inset-0 h-full w-full border-0"
+        className={`absolute inset-0 h-full w-full border-0 ${interactive ? "" : "pointer-events-none"}`}
         src={buildEmbedUrl(video.id, muted)}
         title={video.title}
         loading="eager"

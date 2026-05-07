@@ -42,7 +42,7 @@ interface YouTubeVideoDetailsItem {
   };
 }
 
-async function fetchVerifiedEmbeddableVideos(videoIds: string[], apiKey: string) {
+async function fetchVerifiedEmbeddableVideos(videoIds: string[], apiKey: string, bypassCache = false) {
   if (videoIds.length === 0) return [];
 
   const detailsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
@@ -50,9 +50,14 @@ async function fetchVerifiedEmbeddableVideos(videoIds: string[], apiKey: string)
   detailsUrl.searchParams.set("id", videoIds.join(","));
   detailsUrl.searchParams.set("key", apiKey);
 
-  const response = await fetch(detailsUrl, {
-    next: { revalidate: 1200 }
-  });
+  const response = await fetch(
+    detailsUrl,
+    bypassCache
+      ? { cache: "no-store" }
+      : {
+          next: { revalidate: 1200 }
+        }
+  );
 
   if (!response.ok) return [];
 
@@ -93,6 +98,13 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const forcedDemo = url.searchParams.get("demo") === "true";
   const query = url.searchParams.get("q") || pickYouTubeQuery();
+  const excludedIds = new Set(
+    (url.searchParams.get("exclude") ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+  );
+  const bypassCache = url.searchParams.has("refresh") || excludedIds.size > 0;
   const apiKey = process.env.YOUTUBE_API_KEY;
 
   if (forcedDemo) {
@@ -107,7 +119,7 @@ export async function GET(request: Request) {
 
   const cacheKey = query.toLowerCase();
   const cached = cache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
+  if (!bypassCache && cached && cached.expiresAt > Date.now()) {
     return NextResponse.json(cached.response);
   }
 
@@ -117,16 +129,21 @@ export async function GET(request: Request) {
   searchUrl.searchParams.set("videoDuration", "short");
   searchUrl.searchParams.set("videoEmbeddable", "true");
   searchUrl.searchParams.set("safeSearch", "moderate");
-  searchUrl.searchParams.set("maxResults", "10");
+  searchUrl.searchParams.set("maxResults", "25");
   searchUrl.searchParams.set("regionCode", "IN");
   searchUrl.searchParams.set("relevanceLanguage", "en");
   searchUrl.searchParams.set("q", query);
   searchUrl.searchParams.set("key", apiKey);
 
   try {
-    const response = await fetch(searchUrl, {
-      next: { revalidate: 1200 }
-    });
+    const response = await fetch(
+      searchUrl,
+      bypassCache
+        ? { cache: "no-store" }
+        : {
+            next: { revalidate: 1200 }
+          }
+    );
 
     if (!response.ok) {
       return NextResponse.json(
@@ -138,10 +155,11 @@ export async function GET(request: Request) {
     const data = (await response.json()) as { items?: unknown };
     const rawItems = Array.isArray(data.items) ? data.items : [];
     const searchVideos = normalizeYouTubeItems(rawItems as Parameters<typeof normalizeYouTubeItems>[0]);
-    const videos = await fetchVerifiedEmbeddableVideos(
+    const videos = (await fetchVerifiedEmbeddableVideos(
       searchVideos.map((video) => video.id),
-      apiKey
-    );
+      apiKey,
+      bypassCache
+    )).filter((video) => !excludedIds.has(video.id));
 
     if (videos.length === 0) {
       return NextResponse.json(
@@ -156,10 +174,12 @@ export async function GET(request: Request) {
       fetchedAt: new Date().toISOString()
     };
 
-    cache.set(cacheKey, {
-      expiresAt: Date.now() + CACHE_TTL_MS,
-      response: normalized
-    });
+    if (!bypassCache) {
+      cache.set(cacheKey, {
+        expiresAt: Date.now() + CACHE_TTL_MS,
+        response: normalized
+      });
+    }
 
     return NextResponse.json(normalized);
   } catch {

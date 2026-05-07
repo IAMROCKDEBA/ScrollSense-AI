@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Brain, Coffee, Pause, Play, RotateCcw, StepForward, Volume2, VolumeX, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createId, formatDuration } from "@/lib/utils";
+import { youtubeQueries } from "@/lib/youtube";
 import { useAppStore } from "@/store/app-store";
 import type { FocusAfter, Mood, VideoItem, VideoSession, WatchReason, YouTubeSearchResponse } from "@/types";
 
 const moods: Mood[] = ["Happy", "Bored", "Stressed", "Anxious", "Lonely", "Tired", "Procrastinating", "Neutral"];
 const reasons: WatchReason[] = ["Entertainment", "Boredom", "Stress relief", "Habit", "Procrastination", "Learning", "Motivation"];
 const focusOptions: FocusAfter[] = ["More focused", "Same", "Less focused"];
+const AUTO_REFRESH_MS = 2 * 60 * 1000;
 
 export default function FeedPage() {
   const profile = useAppStore((state) => state.profile);
@@ -27,7 +29,9 @@ export default function FeedPage() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [apiMode, setApiMode] = useState<"demo" | "youtube">("demo");
   const [apiMessage, setApiMessage] = useState("Loading videos...");
+  const [lastFeedRefresh, setLastFeedRefresh] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
   const [plannedMinutes, setPlannedMinutes] = useState(5);
@@ -51,39 +55,87 @@ export default function FeedPage() {
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [videoPlaying, setVideoPlaying] = useState(true);
+  const [youtubeControlsEnabled, setYoutubeControlsEnabled] = useState(false);
 
   const sessionStartedAt = useRef<number | null>(null);
   const currentVideoStartedAt = useRef<number | null>(null);
   const lastScrollAdvanceAt = useRef(0);
   const touchStartY = useRef<number | null>(null);
+  const batchIndex = useRef(0);
+  const seenVideoIds = useRef<Set<string>>(new Set());
+  const loadingMoreRef = useRef(false);
 
-  const currentVideo = videos[videoIndex % Math.max(1, videos.length)];
+  const currentVideo = videos[videoIndex] ?? videos[0];
   const averageTimePerVideo = useMemo(
     () => (videosWatched > 0 ? Math.round(durationSeconds / videosWatched) : 0),
     [durationSeconds, videosWatched]
   );
 
-  useEffect(() => {
-    async function loadVideos() {
+  const loadVideoBatch = useCallback(async (append = false) => {
+    if (append && loadingMoreRef.current) return;
+
+    if (append) {
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+    } else {
       setLoading(true);
       setError("");
-      const queryForDemo = demoMode || (typeof window !== "undefined" && window.location.search.includes("demo=true"));
+      setVideoIndex(0);
+      batchIndex.current = 0;
+      seenVideoIds.current = new Set();
+    }
 
-      try {
-        const response = await fetch(`/api/youtube/search${queryForDemo ? "?demo=true" : ""}`);
-        const data = (await response.json()) as YouTubeSearchResponse;
-        setVideos(data.videos);
-        setApiMode(data.mode);
-        setApiMessage(data.message ?? `Loaded ${data.videos.length} public videos.`);
-      } catch {
-        setError("Video loading failed. Demo mode can still be used from Preferences.");
-      } finally {
-        setLoading(false);
+    const forceDemo = demoMode || (typeof window !== "undefined" && window.location.search.includes("demo=true"));
+    const params = new URLSearchParams();
+    const query = youtubeQueries[batchIndex.current % youtubeQueries.length];
+    batchIndex.current += 1;
+
+    if (forceDemo) {
+      params.set("demo", "true");
+    } else {
+      params.set("q", query);
+      params.set("refresh", String(batchIndex.current));
+      const excludes = Array.from(seenVideoIds.current).slice(-45);
+      if (excludes.length > 0) {
+        params.set("exclude", excludes.join(","));
       }
     }
 
-    loadVideos();
+    try {
+      const response = await fetch(`/api/youtube/search?${params.toString()}`);
+      const data = (await response.json()) as YouTubeSearchResponse;
+      const shuffled = shuffleVideos(data.videos);
+      const uniqueVideos = shuffled.filter((video) => !seenVideoIds.current.has(video.id));
+      const nextVideos = append ? uniqueVideos : uniqueVideos.length > 0 ? uniqueVideos : shuffled;
+
+      nextVideos.forEach((video) => seenVideoIds.current.add(video.id));
+
+      setVideos((current) => (append ? [...current, ...nextVideos] : nextVideos));
+      setApiMode(data.mode);
+      setLastFeedRefresh(new Date().toISOString());
+      setApiMessage(
+        append
+          ? nextVideos.length > 0
+            ? `Added ${nextVideos.length} new public videos.`
+            : "No new videos were returned in this batch. Try again or switch demo mode."
+          : data.message ?? `Loaded ${nextVideos.length} public videos.`
+      );
+    } catch {
+      setError("Video loading failed. Demo mode can still be used from Preferences.");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
+    }
   }, [demoMode]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadVideoBatch(false);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadVideoBatch]);
 
   useEffect(() => {
     if (!sessionActive) return;
@@ -92,6 +144,16 @@ export default function FeedPage() {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [sessionActive]);
+
+  useEffect(() => {
+    if (!sessionActive) return;
+
+    const refreshTimer = window.setInterval(() => {
+      void loadVideoBatch(true);
+    }, AUTO_REFRESH_MS);
+
+    return () => window.clearInterval(refreshTimer);
+  }, [loadVideoBatch, sessionActive]);
 
   useEffect(() => {
     if (pauseSeconds <= 0) return;
@@ -120,22 +182,34 @@ export default function FeedPage() {
     setMindfulPauseCount(0);
     setWarningDismissed(false);
     setVideoPlaying(true);
+    setYoutubeControlsEnabled(false);
     setVideoIndex(0);
   }
 
   function nextVideo() {
     if (!sessionActive || pauseSeconds > 0) return;
+    if (videoIndex >= videos.length - 1) {
+      void loadVideoBatch(true);
+      return;
+    }
+
     const elapsedOnVideo = currentVideoStartedAt.current ? (Date.now() - currentVideoStartedAt.current) / 1000 : 0;
     if (elapsedOnVideo < 7) setSkipCount((count) => count + 1);
+    const nextIndex = videoIndex + 1;
     currentVideoStartedAt.current = Date.now();
-    setVideoIndex((index) => index + 1);
+    setVideoIndex(nextIndex);
     setVideosWatched((count) => count + 1);
     setNextClicks((count) => count + 1);
     setVideoPlaying(true);
+    setYoutubeControlsEnabled(false);
+
+    if (videos.length - nextIndex <= 3) {
+      void loadVideoBatch(true);
+    }
   }
 
   function advanceFromScroll() {
-    if (!sessionActive || pauseSeconds > 0 || showWarning || postSessionOpen) return;
+    if (!sessionActive || pauseSeconds > 0 || showWarning || postSessionOpen || youtubeControlsEnabled) return;
     const now = Date.now();
     if (now - lastScrollAdvanceAt.current < 780) return;
     lastScrollAdvanceAt.current = now;
@@ -254,9 +328,9 @@ export default function FeedPage() {
             <div className="grid min-h-[calc(100svh-11rem)] lg:grid-cols-[minmax(0,1fr)_18rem]">
               <div
                 className="relative grid min-h-[64svh] place-items-center overflow-hidden bg-black sm:min-h-[72svh]"
-                onWheel={sessionActive ? onWheel : undefined}
-                onTouchStart={sessionActive ? onTouchStart : undefined}
-                onTouchEnd={sessionActive ? onTouchEnd : undefined}
+                onWheel={sessionActive && !youtubeControlsEnabled ? onWheel : undefined}
+                onTouchStart={sessionActive && !youtubeControlsEnabled ? onTouchStart : undefined}
+                onTouchEnd={sessionActive && !youtubeControlsEnabled ? onTouchEnd : undefined}
               >
                 {loading ? (
                   <div className="text-sm text-white/70">Loading feed...</div>
@@ -265,7 +339,16 @@ export default function FeedPage() {
                 ) : currentVideo ? (
                   <>
                     {sessionActive ? (
-                      <YouTubePlayer key={currentVideo.id} video={currentVideo} muted={!soundEnabled} playing={videoPlaying} />
+                      <>
+                        <YouTubePlayer
+                          key={currentVideo.id}
+                          video={currentVideo}
+                          muted={!soundEnabled}
+                          playing={videoPlaying}
+                          interactive={youtubeControlsEnabled}
+                        />
+                        {!youtubeControlsEnabled ? <div className="absolute inset-0 z-10 cursor-ns-resize bg-transparent" aria-hidden="true" /> : null}
+                      </>
                     ) : (
                       <div className="relative h-full min-h-[64svh] w-full overflow-hidden sm:min-h-[68svh]">
                         <div
@@ -360,10 +443,13 @@ export default function FeedPage() {
                     <div className="grid gap-3">
                       <Metric label="Duration" value={formatDuration(durationSeconds)} />
                       <Metric label="Videos watched" value={String(videosWatched)} />
+                      <Metric label="Queued videos" value={String(Math.max(0, videos.length - videoIndex - 1))} />
                       <Metric label="Skip count" value={String(skipCount)} />
                       <Metric label="Average per video" value={`${averageTimePerVideo}s`} />
                       <div className="rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-sm leading-6 text-sky-100">
-                        Scroll down or swipe up over the video frame to advance. The video surface is kept clean, with no custom overlays.
+                        {youtubeControlsEnabled
+                          ? "YouTube controls are active. Turn them off to restore scroll/swipe over the video."
+                          : "Scroll down or swipe up over the video to advance. Turn on YouTube controls only when you need the iframe buttons."}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <Button
@@ -385,9 +471,15 @@ export default function FeedPage() {
                           {soundEnabled ? "Sound on" : "Sound off"}
                         </Button>
                       </div>
-                      <Button onClick={nextVideo} disabled={pauseSeconds > 0}>
+                      <Button onClick={nextVideo} disabled={pauseSeconds > 0 || loadingMore}>
                         <StepForward className="h-4 w-4" aria-hidden="true" />
-                        Next video
+                        {loadingMore ? "Loading more..." : "Next video"}
+                      </Button>
+                      <Button
+                        variant={youtubeControlsEnabled ? "secondary" : "outline"}
+                        onClick={() => setYoutubeControlsEnabled((enabled) => !enabled)}
+                      >
+                        {youtubeControlsEnabled ? "Scroll mode" : "YouTube controls"}
                       </Button>
                       <Button onClick={startMindfulPause} variant="outline" disabled={pauseSeconds > 0}>
                         <Pause className="h-4 w-4" aria-hidden="true" />
@@ -444,10 +536,13 @@ export default function FeedPage() {
           <Card>
             <CardHeader>
               <CardTitle>Feed status</CardTitle>
-              <CardDescription>{apiMessage}</CardDescription>
+              <CardDescription>
+                {apiMessage}
+                {lastFeedRefresh ? ` Last refresh: ${new Date(lastFeedRefresh).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` : ""}
+              </CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              The feed uses public embedded videos when available and automatically falls back to demo videos when the live source cannot be reached.
+              New unique videos are added automatically every 2 minutes during an active session. The feed uses public embedded videos when available and falls back to demo videos when the live source cannot be reached.
             </CardContent>
           </Card>
 
@@ -492,4 +587,8 @@ function Metric({ label, value }: { label: string; value: string }) {
       <div className="mt-1 text-xl font-semibold">{value}</div>
     </div>
   );
+}
+
+function shuffleVideos(videos: VideoItem[]) {
+  return [...videos].sort(() => Math.random() - 0.5);
 }
