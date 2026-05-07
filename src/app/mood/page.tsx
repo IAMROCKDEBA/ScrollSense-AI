@@ -19,6 +19,8 @@ const focusOptions: FocusAfter[] = ["More focused", "Same", "Less focused"];
 export default function MoodPage() {
   const addMoodLog = useAppStore((state) => state.addMoodLog);
   const moodLogs = useAppStore((state) => state.moodLogs);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [draft, setDraft] = useState<Omit<MoodLog, "id" | "createdAt">>({
     moodBefore: "Neutral",
     reason: "Entertainment",
@@ -29,11 +31,28 @@ export default function MoodPage() {
   });
 
   function save() {
-    addMoodLog({
-      ...draft,
-      id: createId("mood"),
-      createdAt: new Date().toISOString()
-    });
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveMessage("Saved. Opening video session...");
+
+    try {
+      addMoodLog({
+        ...draft,
+        id: createId("mood"),
+        createdAt: new Date().toISOString()
+      });
+      window.setTimeout(() => {
+        window.location.href = "/feed";
+      }, 150);
+    } catch {
+      setSaveMessage("The check-in could not be saved in this browser. Try refreshing once.");
+      setIsSaving(false);
+    }
+  }
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    save();
   }
 
   return (
@@ -59,53 +78,60 @@ export default function MoodPage() {
             <CardTitle>Before and after session</CardTitle>
             <CardDescription>You can also complete this inside the feed session.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-5">
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Mood before">
-                <MoodSelect value={draft.moodBefore ?? "Neutral"} onChange={(value) => setDraft((current) => ({ ...current, moodBefore: value }))} />
-              </Field>
-              <Field label="Reason for watching">
-                <Select value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value as WatchReason }))}>
-                  {reasons.map((reason) => (
-                    <option key={reason}>{reason}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Mood after">
-                <MoodSelect value={draft.moodAfter ?? "Neutral"} onChange={(value) => setDraft((current) => ({ ...current, moodAfter: value }))} />
-              </Field>
-              <Field label="Do you feel like continuing?">
-                <input
-                  className="w-full accent-sky-400"
-                  type="range"
-                  min={1}
-                  max={10}
-                  value={draft.urgeToContinueScore}
-                  onChange={(event) => setDraft((current) => ({ ...current, urgeToContinueScore: Number(event.target.value) }))}
-                />
-                <div className="text-sm text-muted-foreground">Score: {draft.urgeToContinueScore}/10</div>
-              </Field>
-              <Field label="Did you exceed your planned time?">
-                <Select
-                  value={draft.exceededPlannedTime ? "Yes" : "No"}
-                  onChange={(event) => setDraft((current) => ({ ...current, exceededPlannedTime: event.target.value === "Yes" }))}
-                >
-                  <option>Yes</option>
-                  <option>No</option>
-                </Select>
-              </Field>
-              <Field label="Do you feel more focused, same, or less focused?">
-                <Select value={draft.focusAfter} onChange={(event) => setDraft((current) => ({ ...current, focusAfter: event.target.value as FocusAfter }))}>
-                  {focusOptions.map((option) => (
-                    <option key={option}>{option}</option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <Button onClick={save} className="w-full sm:w-fit">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Save mood log
-            </Button>
+          <CardContent>
+            <form action="/feed" method="get" onSubmit={onSubmit} className="grid gap-5">
+              {saveMessage ? (
+                <div className="rounded-lg border border-emerald-500/35 bg-emerald-500/12 p-4 text-sm font-medium text-emerald-100" role="status">
+                  {saveMessage}
+                </div>
+              ) : null}
+              <div className="grid gap-5 md:grid-cols-2">
+                <Field label="Mood before">
+                  <MoodSelect value={draft.moodBefore ?? "Neutral"} onChange={(value) => setDraft((current) => ({ ...current, moodBefore: value }))} />
+                </Field>
+                <Field label="Reason for watching">
+                  <Select value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value as WatchReason }))}>
+                    {reasons.map((reason) => (
+                      <option key={reason}>{reason}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Mood after">
+                  <MoodSelect value={draft.moodAfter ?? "Neutral"} onChange={(value) => setDraft((current) => ({ ...current, moodAfter: value }))} />
+                </Field>
+                <Field label="Do you feel like continuing?">
+                  <input
+                    className="w-full accent-sky-400"
+                    type="range"
+                    min={1}
+                    max={10}
+                    value={draft.urgeToContinueScore}
+                    onChange={(event) => setDraft((current) => ({ ...current, urgeToContinueScore: Number(event.target.value) }))}
+                  />
+                  <div className="text-sm text-muted-foreground">Score: {draft.urgeToContinueScore}/10</div>
+                </Field>
+                <Field label="Did you exceed your planned time?">
+                  <Select
+                    value={draft.exceededPlannedTime ? "Yes" : "No"}
+                    onChange={(event) => setDraft((current) => ({ ...current, exceededPlannedTime: event.target.value === "Yes" }))}
+                  >
+                    <option>Yes</option>
+                    <option>No</option>
+                  </Select>
+                </Field>
+                <Field label="Do you feel more focused, same, or less focused?">
+                  <Select value={draft.focusAfter} onChange={(event) => setDraft((current) => ({ ...current, focusAfter: event.target.value as FocusAfter }))}>
+                    {focusOptions.map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+              <Button type="submit" disabled={isSaving} className="w-full sm:w-fit">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {isSaving ? "Saving..." : "Save mood log and continue"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
