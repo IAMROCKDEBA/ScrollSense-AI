@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +77,6 @@ function profileToDraft(profile: UserProfile): ProfileDraft {
 }
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const profile = useAppStore((state) => state.profile);
   const saveProfile = useAppStore((state) => state.saveProfile);
   const [draft, setDraft] = useState<ProfileDraft>(emptyDraft);
@@ -103,15 +101,6 @@ export default function OnboardingPage() {
       delete next[key];
       return next;
     });
-  }
-
-  function goToMoodPage() {
-    router.push("/mood");
-    window.setTimeout(() => {
-      if (window.location.pathname !== "/mood") {
-        window.location.assign("/mood");
-      }
-    }, 250);
   }
 
   function submitProfile() {
@@ -140,7 +129,7 @@ export default function OnboardingPage() {
         name: draft.name.trim(),
         createdAt: profile?.createdAt ?? new Date().toISOString()
       });
-      goToMoodPage();
+      window.location.href = "/mood";
     } catch {
       setSubmitMessage("Your browser blocked saving. Please allow site storage or use another browser.");
       setIsSaving(false);
@@ -169,7 +158,7 @@ export default function OnboardingPage() {
           <CardDescription>All fields are required for a more useful estimate.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-5" onSubmit={onSubmit} noValidate>
+          <form className="grid gap-5" action="/mood" method="get" onSubmit={onSubmit} noValidate>
             {submitMessage ? (
               <div
                 className={
@@ -324,7 +313,7 @@ export default function OnboardingPage() {
                 />
               </Field>
             </div>
-            <Button type="button" onClick={submitProfile} disabled={isSaving} className="w-full sm:w-fit">
+            <Button type="submit" disabled={isSaving} className="w-full sm:w-fit">
               <Save className="h-4 w-4" aria-hidden="true" />
               {isSaving ? "Saving..." : "Save and continue"}
             </Button>
