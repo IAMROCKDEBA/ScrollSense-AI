@@ -53,6 +53,8 @@ export default function FeedPage() {
 
   const sessionStartedAt = useRef<number | null>(null);
   const currentVideoStartedAt = useRef<number | null>(null);
+  const lastScrollAdvanceAt = useRef(0);
+  const touchStartY = useRef<number | null>(null);
 
   const currentVideo = videos[videoIndex % Math.max(1, videos.length)];
   const averageTimePerVideo = useMemo(
@@ -116,6 +118,7 @@ export default function FeedPage() {
     setContinuedAfterWarning(false);
     setMindfulPauseCount(0);
     setWarningDismissed(false);
+    setFailedVideoIds([]);
     setVideoIndex(0);
   }
 
@@ -129,12 +132,54 @@ export default function FeedPage() {
     setNextClicks((count) => count + 1);
   }
 
+  function advanceFromScroll() {
+    if (!sessionActive || pauseSeconds > 0 || showWarning || postSessionOpen) return;
+    const now = Date.now();
+    if (now - lastScrollAdvanceAt.current < 780) return;
+    lastScrollAdvanceAt.current = now;
+    nextVideo();
+  }
+
+  function onWheel(event: React.WheelEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    if (event.deltaY > 36) {
+      event.preventDefault();
+      advanceFromScroll();
+    }
+  }
+
+  function onTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    touchStartY.current = event.touches[0]?.clientY ?? null;
+  }
+
+  function onTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    if (touchStartY.current === null) return;
+    const endY = event.changedTouches[0]?.clientY ?? touchStartY.current;
+    const deltaY = touchStartY.current - endY;
+    touchStartY.current = null;
+
+    if (deltaY > 54) {
+      event.preventDefault();
+      advanceFromScroll();
+    }
+  }
+
+  function onGestureKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") {
+      event.preventDefault();
+      advanceFromScroll();
+    }
+  }
+
   function skipFailedVideo() {
     if (!currentVideo) return;
+    const nextFailedCount = new Set([...failedVideoIds, currentVideo.id]).size;
     setFailedVideoIds((ids) => (ids.includes(currentVideo.id) ? ids : [...ids, currentVideo.id]));
     setSkipCount((count) => count + 1);
 
-    if (videos.length <= 1 || failedVideoIds.length + 1 >= videos.length) {
+    if (videos.length <= 1 || nextFailedCount >= videos.length) {
       setSessionActive(false);
       setError("No playable embedded videos are available right now. Try demo mode or refresh the feed later.");
       return;
@@ -209,7 +254,7 @@ export default function FeedPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-normal">Short-Video Session</h1>
+          <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Short-Video Session</h1>
           <p className="mt-2 max-w-3xl text-muted-foreground">
             Watch a public embeddable feed, then compare planned time, actual behavior, mood shift, and urge to continue.
           </p>
@@ -222,11 +267,13 @@ export default function FeedPage() {
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[0.74fr_0.26fr]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="grid min-h-[68vh] lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="relative grid min-h-[68vh] place-items-center bg-black">
+            <div className="grid min-h-[calc(100svh-11rem)] lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div
+                className="relative grid min-h-[64svh] place-items-center overflow-hidden bg-black sm:min-h-[72svh]"
+              >
                 {loading ? (
                   <div className="text-sm text-white/70">Loading feed...</div>
                 ) : error ? (
@@ -236,11 +283,25 @@ export default function FeedPage() {
                     {sessionActive ? (
                       <>
                         <YouTubePlayer key={currentVideo.id} video={currentVideo} onFailed={skipFailedVideo} onNext={nextVideo} />
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Scroll down or swipe up to play the next video"
+                          className="absolute inset-0 z-10 cursor-ns-resize touch-none select-none"
+                          onWheel={onWheel}
+                          onTouchStart={onTouchStart}
+                          onTouchEnd={onTouchEnd}
+                          onKeyDown={onGestureKeyDown}
+                        >
+                          <div className="pointer-events-none absolute bottom-4 left-1/2 hidden -translate-x-1/2 rounded-lg border border-white/12 bg-black/58 px-3 py-2 text-xs text-white/72 backdrop-blur-sm sm:block">
+                            Scroll down or swipe up for next
+                          </div>
+                        </div>
                       </>
                     ) : (
-                      <div className="relative h-full min-h-[68vh] w-full overflow-hidden">
+                      <div className="relative h-full min-h-[64svh] w-full overflow-hidden sm:min-h-[68svh]">
                         <div
-                          className="h-full min-h-[68vh] w-full bg-cover bg-center opacity-50"
+                          className="h-full min-h-[64svh] w-full bg-cover bg-center opacity-50 sm:min-h-[68svh]"
                           style={{ backgroundImage: `url("${currentVideo.thumbnail}")` }}
                           aria-hidden="true"
                         />
@@ -253,14 +314,14 @@ export default function FeedPage() {
                             <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Ready when you are</p>
                             <h2 className="mt-3 text-2xl font-semibold">{currentVideo.title}</h2>
                             <p className="mt-2 text-sm text-white/72">
-                              Start the session to load the embedded player. If a public embed fails, use Next video.
+                              Start the session, then scroll down or swipe up for the next video.
                             </p>
                           </div>
                         </div>
                       </div>
                     )}
                     {pauseSeconds > 0 ? (
-                      <div className="absolute inset-0 grid place-items-center bg-black/80 px-6 text-center text-white">
+                      <div className="absolute inset-0 z-30 grid place-items-center bg-black/80 px-6 text-center text-white">
                         <div>
                           <Coffee className="mx-auto mb-4 h-10 w-10 text-sky-300" aria-hidden="true" />
                           <div className="text-4xl font-semibold">{pauseSeconds}</div>
@@ -269,7 +330,7 @@ export default function FeedPage() {
                       </div>
                     ) : null}
                     {showWarning ? (
-                      <div className="absolute inset-0 grid place-items-center bg-black/80 px-4">
+                      <div className="absolute inset-0 z-30 grid place-items-center bg-black/80 px-4">
                         <div className="max-w-md rounded-lg border border-white/15 bg-slate-950/92 p-5 text-center text-white">
                           <Brain className="mx-auto mb-3 h-9 w-9 text-sky-300" aria-hidden="true" />
                           <h2 className="text-xl font-semibold">Pause for a moment.</h2>
@@ -299,7 +360,7 @@ export default function FeedPage() {
                 )}
               </div>
 
-              <div className="border-l bg-card p-4">
+              <div className="border-t bg-card p-4 lg:border-l lg:border-t-0">
                 <div className="space-y-4">
                   <div>
                     <div className="text-sm text-muted-foreground">Now showing</div>
@@ -333,6 +394,9 @@ export default function FeedPage() {
                       <Metric label="Videos watched" value={String(videosWatched)} />
                       <Metric label="Skip count" value={String(skipCount)} />
                       <Metric label="Average per video" value={`${averageTimePerVideo}s`} />
+                      <div className="rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-sm text-sky-100">
+                        Scroll down on laptop or swipe up on phone to move to the next video.
+                      </div>
                       <Button onClick={nextVideo} disabled={pauseSeconds > 0}>
                         <StepForward className="h-4 w-4" aria-hidden="true" />
                         Next video

@@ -152,10 +152,14 @@ export function YouTubePlayer({
   }, [video.id]);
 
   return (
-    <div className="relative h-full min-h-[68vh] w-full bg-black">
+    <div className="relative h-full min-h-[64svh] w-full bg-black sm:min-h-[68svh]">
       <div
         ref={hostRef}
-        className={state === "playable" ? "h-full min-h-[68vh] w-full" : "pointer-events-none h-full min-h-[68vh] w-full opacity-0"}
+        className={
+          state === "playable"
+            ? "h-full min-h-[64svh] w-full sm:min-h-[68svh]"
+            : "pointer-events-none h-full min-h-[64svh] w-full opacity-0 sm:min-h-[68svh]"
+        }
       />
 
       {state !== "playable" ? (

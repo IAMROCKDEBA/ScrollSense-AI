@@ -23,6 +23,9 @@ Important: this is not a medical diagnosis. It is an educational digital well-be
 - Personalized recommendations and 7-day plan
 - Report page with JSON, CSV, and print export
 - Local-first browser storage using localStorage
+- Installable Progressive Web App for phones and laptops
+- Custom install prompt with a 7-day reminder delay after dismissal
+- Scroll-down / swipe-up video navigation during active sessions
 - No login, no database, no private app tracking
 - Vercel-ready Next.js app
 
@@ -59,6 +62,7 @@ src/
     api/youtube/search/route.ts
   components/
     layout/
+    pwa/
     providers/
     tests/
     ui/
@@ -78,6 +82,10 @@ src/
     app-store.ts
   types/
     index.ts
+public/
+  manifest.webmanifest
+  sw.js
+  icons/
 ```
 
 ## How to Install Node.js
@@ -126,6 +134,18 @@ Ctrl + C
 ```
 
 If you change `.env.local`, stop and restart the server.
+
+## Installing the App on Phone or Laptop
+
+ScrollSense AI is a Progressive Web App.
+
+1. Start the app with `npm run dev`, or open the deployed Vercel URL.
+2. Open the app in Chrome, Edge, or a mobile browser.
+3. An install prompt appears after the page opens.
+4. Click **Install app** when the browser install button becomes active.
+5. On iPhone, use the browser Share button, then choose **Add to Home Screen**.
+
+If the prompt is closed with the X button, ScrollSense AI waits 7 days before showing it again. After the app is installed, the prompt is hidden on future standalone app visits.
 
 ## How to Get a YouTube Data API Key
 
@@ -324,6 +344,7 @@ If dashboard scores look incomplete:
 - Run a feed session.
 - Complete the cognitive tests.
 
-If tests fail with a Windows sandbox or permission error:
+If tests fail:
 
-- Run `npm run test` from a normal terminal outside restrictive sandbox software.
+- Run `npm run test` again from the project folder.
+- The test script uses an in-process Vitest pool to avoid common Windows worker-spawn permission issues.
