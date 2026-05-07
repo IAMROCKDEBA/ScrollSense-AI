@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { demoVideos } from "@/data/demo-videos";
 import { normalizeYouTubeItems, pickYouTubeQuery } from "@/lib/youtube";
-import type { YouTubeSearchResponse } from "@/types";
+import type { VideoItem, YouTubeSearchResponse } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,66 @@ function demoResponse(message: string, query?: string): YouTubeSearchResponse {
     query,
     fetchedAt: new Date().toISOString()
   };
+}
+
+interface YouTubeVideoDetailsItem {
+  id?: string;
+  snippet?: {
+    title?: string;
+    channelTitle?: string;
+    thumbnails?: {
+      high?: { url?: string };
+      medium?: { url?: string };
+      default?: { url?: string };
+    };
+  };
+  status?: {
+    embeddable?: boolean;
+    privacyStatus?: string;
+    uploadStatus?: string;
+  };
+}
+
+async function fetchVerifiedEmbeddableVideos(videoIds: string[], apiKey: string) {
+  if (videoIds.length === 0) return [];
+
+  const detailsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
+  detailsUrl.searchParams.set("part", "snippet,status");
+  detailsUrl.searchParams.set("id", videoIds.join(","));
+  detailsUrl.searchParams.set("key", apiKey);
+
+  const response = await fetch(detailsUrl, {
+    next: { revalidate: 1200 }
+  });
+
+  if (!response.ok) return [];
+
+  const data = (await response.json()) as { items?: unknown };
+  const items = Array.isArray(data.items) ? (data.items as YouTubeVideoDetailsItem[]) : [];
+
+  return items
+    .filter((item) => {
+      return (
+        item.id &&
+        item.status?.embeddable === true &&
+        item.status?.privacyStatus === "public" &&
+        item.status?.uploadStatus === "processed"
+      );
+    })
+    .map((item) => {
+      const id = item.id as string;
+      return {
+        id,
+        title: item.snippet?.title ?? "Untitled public video",
+        channelTitle: item.snippet?.channelTitle ?? "Unknown channel",
+        thumbnail:
+          item.snippet?.thumbnails?.high?.url ??
+          item.snippet?.thumbnails?.medium?.url ??
+          item.snippet?.thumbnails?.default?.url ??
+          `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        embedUrl: `https://www.youtube.com/embed/${id}`
+      } satisfies VideoItem;
+    });
 }
 
 export async function GET(request: Request) {
@@ -66,11 +126,15 @@ export async function GET(request: Request) {
 
     const data = (await response.json()) as { items?: unknown };
     const rawItems = Array.isArray(data.items) ? data.items : [];
-    const videos = normalizeYouTubeItems(rawItems as Parameters<typeof normalizeYouTubeItems>[0]);
+    const searchVideos = normalizeYouTubeItems(rawItems as Parameters<typeof normalizeYouTubeItems>[0]);
+    const videos = await fetchVerifiedEmbeddableVideos(
+      searchVideos.map((video) => video.id),
+      apiKey
+    );
 
     if (videos.length === 0) {
       return NextResponse.json(
-        demoResponse("No playable public videos were returned, so demo videos are active.", query)
+        demoResponse("No verified playable public videos were returned, so demo videos are active.", query)
       );
     }
 

@@ -6,6 +6,7 @@ import { Brain, Coffee, Pause, Play, RotateCcw, StepForward, XCircle } from "luc
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { YouTubePlayer } from "@/components/feed/youtube-player";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -48,6 +49,7 @@ export default function FeedPage() {
   const [mindfulPauseCount, setMindfulPauseCount] = useState(0);
   const [pauseSeconds, setPauseSeconds] = useState(0);
   const [warningDismissed, setWarningDismissed] = useState(false);
+  const [failedVideoIds, setFailedVideoIds] = useState<string[]>([]);
 
   const sessionStartedAt = useRef<number | null>(null);
   const currentVideoStartedAt = useRef<number | null>(null);
@@ -125,6 +127,22 @@ export default function FeedPage() {
     setVideoIndex((index) => index + 1);
     setVideosWatched((count) => count + 1);
     setNextClicks((count) => count + 1);
+  }
+
+  function skipFailedVideo() {
+    if (!currentVideo) return;
+    setFailedVideoIds((ids) => (ids.includes(currentVideo.id) ? ids : [...ids, currentVideo.id]));
+    setSkipCount((count) => count + 1);
+
+    if (videos.length <= 1 || failedVideoIds.length + 1 >= videos.length) {
+      setSessionActive(false);
+      setError("No playable embedded videos are available right now. Try demo mode or refresh the feed later.");
+      return;
+    }
+
+    currentVideoStartedAt.current = Date.now();
+    setVideoIndex((index) => index + 1);
+    setVideosWatched((count) => count + 1);
   }
 
   function startMindfulPause() {
@@ -215,14 +233,32 @@ export default function FeedPage() {
                   <div className="max-w-md px-6 text-center text-sm text-red-200">{error}</div>
                 ) : currentVideo ? (
                   <>
-                    <iframe
-                      key={currentVideo.id}
-                      className="h-full min-h-[68vh] w-full"
-                      src={`${currentVideo.embedUrl}?rel=0&modestbranding=1`}
-                      title={currentVideo.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
+                    {sessionActive ? (
+                      <>
+                        <YouTubePlayer key={currentVideo.id} video={currentVideo} onFailed={skipFailedVideo} onNext={nextVideo} />
+                      </>
+                    ) : (
+                      <div className="relative h-full min-h-[68vh] w-full overflow-hidden">
+                        <div
+                          className="h-full min-h-[68vh] w-full bg-cover bg-center opacity-50"
+                          style={{ backgroundImage: `url("${currentVideo.thumbnail}")` }}
+                          aria-hidden="true"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/20" />
+                        <div className="absolute inset-0 grid place-items-center px-6 text-center text-white">
+                          <div className="max-w-lg">
+                            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full border border-white/25 bg-white/10">
+                              <Play className="h-7 w-7" aria-hidden="true" />
+                            </div>
+                            <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Ready when you are</p>
+                            <h2 className="mt-3 text-2xl font-semibold">{currentVideo.title}</h2>
+                            <p className="mt-2 text-sm text-white/72">
+                              Start the session to load the embedded player. If a public embed fails, use Next video.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {pauseSeconds > 0 ? (
                       <div className="absolute inset-0 grid place-items-center bg-black/80 px-6 text-center text-white">
                         <div>
