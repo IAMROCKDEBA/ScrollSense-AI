@@ -84,6 +84,7 @@ export default function OnboardingPage() {
   const [draft, setDraft] = useState<ProfileDraft>(emptyDraft);
   const [errors, setErrors] = useState<Partial<Record<keyof ProfileDraft, string>>>({});
   const [submitMessage, setSubmitMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -104,14 +105,24 @@ export default function OnboardingPage() {
     });
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function goToMoodPage() {
+    router.push("/mood");
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/mood") {
+        window.location.assign("/mood");
+      }
+    }, 250);
+  }
+
+  function submitProfile() {
+    if (isSaving) return;
     const result = validateProfile(draft);
     setErrors(result.errors);
 
     if (!result.valid) {
       const firstInvalidField = fieldOrder.find((field) => result.errors[field]);
       setSubmitMessage("Please fix the highlighted fields before continuing.");
+      setIsSaving(false);
       if (firstInvalidField) {
         window.setTimeout(() => {
           document.getElementById(fieldIds[firstInvalidField])?.focus();
@@ -120,12 +131,25 @@ export default function OnboardingPage() {
       return;
     }
 
-    saveProfile({
-      ...draft,
-      name: draft.name.trim(),
-      createdAt: profile?.createdAt ?? new Date().toISOString()
-    });
-    router.push("/mood");
+    setIsSaving(true);
+    setSubmitMessage("Saved. Opening mood check-in...");
+
+    try {
+      saveProfile({
+        ...draft,
+        name: draft.name.trim(),
+        createdAt: profile?.createdAt ?? new Date().toISOString()
+      });
+      goToMoodPage();
+    } catch {
+      setSubmitMessage("Your browser blocked saving. Please allow site storage or use another browser.");
+      setIsSaving(false);
+    }
+  }
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    submitProfile();
   }
 
   return (
@@ -147,15 +171,24 @@ export default function OnboardingPage() {
         <CardContent>
           <form className="grid gap-5" onSubmit={onSubmit} noValidate>
             {submitMessage ? (
-              <div className="rounded-lg border border-red-500/35 bg-red-500/12 p-4 text-sm text-red-100" role="alert">
+              <div
+                className={
+                  errors && Object.keys(errors).length > 0
+                    ? "rounded-lg border border-red-500/35 bg-red-500/12 p-4 text-sm text-red-100"
+                    : "rounded-lg border border-emerald-500/35 bg-emerald-500/12 p-4 text-sm text-emerald-100"
+                }
+                role="alert"
+              >
                 <p className="font-medium">{submitMessage}</p>
-                <ul className="mt-2 list-inside list-disc text-red-100/85">
-                  {fieldOrder
-                    .filter((field) => errors[field])
-                    .map((field) => (
-                      <li key={field}>{errors[field]}</li>
-                    ))}
-                </ul>
+                {Object.keys(errors).length > 0 ? (
+                  <ul className="mt-2 list-inside list-disc text-red-100/85">
+                    {fieldOrder
+                      .filter((field) => errors[field])
+                      .map((field) => (
+                        <li key={field}>{errors[field]}</li>
+                      ))}
+                  </ul>
+                ) : null}
               </div>
             ) : null}
             <div className="grid gap-5 md:grid-cols-2">
@@ -291,9 +324,9 @@ export default function OnboardingPage() {
                 />
               </Field>
             </div>
-            <Button type="submit" className="w-full sm:w-fit">
+            <Button type="button" onClick={submitProfile} disabled={isSaving} className="w-full sm:w-fit">
               <Save className="h-4 w-4" aria-hidden="true" />
-              Save and continue
+              {isSaving ? "Saving..." : "Save and continue"}
             </Button>
           </form>
         </CardContent>
