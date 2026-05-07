@@ -34,13 +34,19 @@ interface YouTubeVideoDetailsItem {
     privacyStatus?: string;
     uploadStatus?: string;
   };
+  contentDetails?: {
+    regionRestriction?: {
+      allowed?: string[];
+      blocked?: string[];
+    };
+  };
 }
 
 async function fetchVerifiedEmbeddableVideos(videoIds: string[], apiKey: string) {
   if (videoIds.length === 0) return [];
 
   const detailsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
-  detailsUrl.searchParams.set("part", "snippet,status");
+  detailsUrl.searchParams.set("part", "snippet,status,contentDetails");
   detailsUrl.searchParams.set("id", videoIds.join(","));
   detailsUrl.searchParams.set("key", apiKey);
 
@@ -55,11 +61,16 @@ async function fetchVerifiedEmbeddableVideos(videoIds: string[], apiKey: string)
 
   return items
     .filter((item) => {
+      const blockedRegions = item.contentDetails?.regionRestriction?.blocked ?? [];
+      const allowedRegions = item.contentDetails?.regionRestriction?.allowed;
+      const playableInIndia = !blockedRegions.includes("IN") && (!allowedRegions || allowedRegions.includes("IN"));
+
       return (
         item.id &&
         item.status?.embeddable === true &&
         item.status?.privacyStatus === "public" &&
-        item.status?.uploadStatus === "processed"
+        item.status?.uploadStatus === "processed" &&
+        playableInIndia
       );
     })
     .map((item) => {

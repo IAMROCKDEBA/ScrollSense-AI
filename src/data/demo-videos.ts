@@ -14,12 +14,12 @@ const makeVideo = (
 });
 
 export const demoVideos: VideoItem[] = [
-  makeVideo("M7lc1UVf-VE", "Demo short-video placeholder: mindful tech use", "YouTube Developers"),
-  makeVideo("jNQXAC9IVRw", "Demo video: quick curiosity clip", "YouTube Archive"),
-  makeVideo("dQw4w9WgXcQ", "Demo video: attention check clip", "Public Embed Demo"),
-  makeVideo("ysz5S6PUM-U", "Demo video: study break sample", "Public Embed Demo"),
-  makeVideo("aqz-KE-bpKQ", "Demo video: creative commons sample", "Public Embed Demo"),
-  makeVideo("ScMzIvxBSi4", "Demo video: focus reset sample", "Public Embed Demo"),
-  makeVideo("kJQP7kiw5Fk", "Demo video: high-stimulus sample", "Public Embed Demo"),
-  makeVideo("fJ9rUzIMcZQ", "Demo video: session behavior sample", "Public Embed Demo")
+  makeVideo("M7lc1UVf-VE", "Demo embed: YouTube player sample", "YouTube Developers"),
+  makeVideo("jNQXAC9IVRw", "Demo embed: short public archive clip", "Public YouTube Archive"),
+  makeVideo("ysz5S6PUM-U", "Demo embed: public sample video", "Public Embed Sample"),
+  makeVideo("aqz-KE-bpKQ", "Demo embed: creative commons animation", "Public Embed Sample"),
+  makeVideo("ScMzIvxBSi4", "Demo embed: visual attention sample", "Public Embed Sample"),
+  makeVideo("YE7VzlLtp-4", "Demo embed: short animation sample", "Public Embed Sample"),
+  makeVideo("BaW_jenozKc", "Demo embed: developer test clip", "YouTube Developers"),
+  makeVideo("Ks-_Mh1QhMc", "Demo embed: public learning clip", "Public Embed Sample")
 ];

@@ -13,6 +13,7 @@ const DISMISSED_KEY = "scrollsense-install-dismissed-at";
 const INSTALLED_KEY = "scrollsense-installed";
 const DISMISS_DAYS = 7;
 const DISMISS_MS = DISMISS_DAYS * 24 * 60 * 60 * 1000;
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 function storageGet(key: string) {
   try {
@@ -59,9 +60,25 @@ export function PwaProvider() {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // The app still works as a website if service worker registration is unavailable.
-      });
+      if (IS_PRODUCTION) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {
+          // The app still works as a website if service worker registration is unavailable.
+        });
+      } else {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        });
+
+        if ("caches" in window) {
+          caches.keys().then((keys) => {
+            keys.filter((key) => key.startsWith("scrollsense-ai")).forEach((key) => caches.delete(key));
+          });
+        }
+      }
+    }
+
+    if (!IS_PRODUCTION) {
+      return;
     }
 
     if (isStandalone() || storageGet(INSTALLED_KEY) === "true" || !canShowAfterDismissal()) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "scrollsense-ai-v2";
+const CACHE_NAME = "scrollsense-ai-v4";
 const APP_SHELL = [
   "/",
   "/onboarding",
@@ -81,7 +81,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest") {
+  if (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest") {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
@@ -91,6 +91,19 @@ self.addEventListener("fetch", (event) => {
           return response;
         });
       })
+    );
+    return;
+  }
+
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }

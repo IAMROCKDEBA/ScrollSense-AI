@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Brain, Coffee, Pause, Play, RotateCcw, StepForward, XCircle } from "lucide-react";
+import { Brain, Coffee, Pause, Play, RotateCcw, StepForward, Volume2, VolumeX, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +49,8 @@ export default function FeedPage() {
   const [mindfulPauseCount, setMindfulPauseCount] = useState(0);
   const [pauseSeconds, setPauseSeconds] = useState(0);
   const [warningDismissed, setWarningDismissed] = useState(false);
-  const [failedVideoIds, setFailedVideoIds] = useState<string[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [videoPlaying, setVideoPlaying] = useState(true);
 
   const sessionStartedAt = useRef<number | null>(null);
   const currentVideoStartedAt = useRef<number | null>(null);
@@ -118,7 +119,7 @@ export default function FeedPage() {
     setContinuedAfterWarning(false);
     setMindfulPauseCount(0);
     setWarningDismissed(false);
-    setFailedVideoIds([]);
+    setVideoPlaying(true);
     setVideoIndex(0);
   }
 
@@ -130,6 +131,7 @@ export default function FeedPage() {
     setVideoIndex((index) => index + 1);
     setVideosWatched((count) => count + 1);
     setNextClicks((count) => count + 1);
+    setVideoPlaying(true);
   }
 
   function advanceFromScroll() {
@@ -166,39 +168,17 @@ export default function FeedPage() {
     }
   }
 
-  function onGestureKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") {
-      event.preventDefault();
-      advanceFromScroll();
-    }
-  }
-
-  function skipFailedVideo() {
-    if (!currentVideo) return;
-    const nextFailedCount = new Set([...failedVideoIds, currentVideo.id]).size;
-    setFailedVideoIds((ids) => (ids.includes(currentVideo.id) ? ids : [...ids, currentVideo.id]));
-    setSkipCount((count) => count + 1);
-
-    if (videos.length <= 1 || nextFailedCount >= videos.length) {
-      setSessionActive(false);
-      setError("No playable embedded videos are available right now. Try demo mode or refresh the feed later.");
-      return;
-    }
-
-    currentVideoStartedAt.current = Date.now();
-    setVideoIndex((index) => index + 1);
-    setVideosWatched((count) => count + 1);
-  }
-
   function startMindfulPause() {
     setMindfulPauseCount((count) => count + 1);
     setPauseSeconds(30);
+    setVideoPlaying(false);
     if (showWarning) {
       setWarningDismissed(true);
     }
   }
 
   function continueIntentionally(fromWarning = false) {
+    setVideoPlaying(true);
     if (fromWarning) {
       setContinuedAfterWarning(true);
       setWarningDismissed(true);
@@ -207,6 +187,7 @@ export default function FeedPage() {
 
   function endSession() {
     setSessionActive(false);
+    setVideoPlaying(false);
     setPostSessionOpen(true);
     setExceededPlanned(durationSeconds / 60 > normalizedPlannedMinutes());
   }
@@ -273,6 +254,9 @@ export default function FeedPage() {
             <div className="grid min-h-[calc(100svh-11rem)] lg:grid-cols-[minmax(0,1fr)_18rem]">
               <div
                 className="relative grid min-h-[64svh] place-items-center overflow-hidden bg-black sm:min-h-[72svh]"
+                onWheel={sessionActive ? onWheel : undefined}
+                onTouchStart={sessionActive ? onTouchStart : undefined}
+                onTouchEnd={sessionActive ? onTouchEnd : undefined}
               >
                 {loading ? (
                   <div className="text-sm text-white/70">Loading feed...</div>
@@ -281,23 +265,7 @@ export default function FeedPage() {
                 ) : currentVideo ? (
                   <>
                     {sessionActive ? (
-                      <>
-                        <YouTubePlayer key={currentVideo.id} video={currentVideo} onFailed={skipFailedVideo} onNext={nextVideo} />
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          aria-label="Scroll down or swipe up to play the next video"
-                          className="absolute inset-0 z-10 cursor-ns-resize touch-none select-none"
-                          onWheel={onWheel}
-                          onTouchStart={onTouchStart}
-                          onTouchEnd={onTouchEnd}
-                          onKeyDown={onGestureKeyDown}
-                        >
-                          <div className="pointer-events-none absolute bottom-4 left-1/2 hidden -translate-x-1/2 rounded-lg border border-white/12 bg-black/58 px-3 py-2 text-xs text-white/72 backdrop-blur-sm sm:block">
-                            Scroll down or swipe up for next
-                          </div>
-                        </div>
-                      </>
+                      <YouTubePlayer key={currentVideo.id} video={currentVideo} muted={!soundEnabled} playing={videoPlaying} />
                     ) : (
                       <div className="relative h-full min-h-[64svh] w-full overflow-hidden sm:min-h-[68svh]">
                         <div
@@ -394,8 +362,28 @@ export default function FeedPage() {
                       <Metric label="Videos watched" value={String(videosWatched)} />
                       <Metric label="Skip count" value={String(skipCount)} />
                       <Metric label="Average per video" value={`${averageTimePerVideo}s`} />
-                      <div className="rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-sm text-sky-100">
-                        Scroll down on laptop or swipe up on phone to move to the next video.
+                      <div className="rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-sm leading-6 text-sky-100">
+                        Scroll down or swipe up over the video frame to advance. The video surface is kept clean, with no custom overlays.
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant={videoPlaying ? "secondary" : "outline"}
+                          onClick={() => setVideoPlaying((playing) => !playing)}
+                          disabled={pauseSeconds > 0}
+                        >
+                          {videoPlaying ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+                          {videoPlaying ? "Pause" : "Play"}
+                        </Button>
+                        <Button
+                          variant={soundEnabled ? "secondary" : "outline"}
+                          onClick={() => {
+                            setSoundEnabled((enabled) => !enabled);
+                            setVideoPlaying(true);
+                          }}
+                        >
+                          {soundEnabled ? <Volume2 className="h-4 w-4" aria-hidden="true" /> : <VolumeX className="h-4 w-4" aria-hidden="true" />}
+                          {soundEnabled ? "Sound on" : "Sound off"}
+                        </Button>
                       </div>
                       <Button onClick={nextVideo} disabled={pauseSeconds > 0}>
                         <StepForward className="h-4 w-4" aria-hidden="true" />
