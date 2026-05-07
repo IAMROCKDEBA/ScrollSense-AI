@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 214 32% 91%;
+  --muted-foreground: 215 16% 42%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 250 95% 76%;
+  --secondary-foreground: 222 47% 11%;
+  --accent: 159 64% 40%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 32% 85%;
+  --input: 214 32% 85%;
+  --ring: 199 89% 48%;
+}
+
+.dark {
+  --background: 222 47% 8%;
+  --foreground: 210 40% 98%;
+  --card: 221 39% 14%;
+  --card-foreground: 210 40% 98%;
+  --muted: 217 33% 18%;
+  --muted-foreground: 215 20% 68%;
+  --primary: 199 89% 58%;
+  --primary-foreground: 222 47% 8%;
+  --secondary: 250 95% 76%;
+  --secondary-foreground: 222 47% 8%;
+  --accent: 160 84% 39%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 24%;
+  --input: 217 33% 24%;
+  --ring: 199 89% 58%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.08), transparent 26rem),
+    linear-gradient(135deg, hsl(var(--background)), hsl(var(--background)));
+  color: hsl(var(--foreground));
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.35);
+}
+
+.glass-panel {
+  background: color-mix(in oklab, hsl(var(--card)) 88%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}

@@ -1,0 +1,42 @@
+{
+  "name": "scrollsense-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --environment node"
+  },
+  "dependencies": {
+    "@radix-ui/react-label": "latest",
+    "@radix-ui/react-slot": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "framer-motion": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "next-themes": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "recharts": "latest",
+    "tailwind-merge": "latest",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "latest",
+    "@testing-library/jest-dom": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "latest",
+    "tailwindcss": "^3.4.17",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}
