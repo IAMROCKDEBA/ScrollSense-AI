@@ -19,6 +19,7 @@ export function exportReportJson(report: ExportReport) {
 export function exportReportCsv(report: ExportReport) {
   const risk = report.riskScore;
   const profile = report.profile;
+  const session = report.latestSession;
   const rows = [
     ["Field", "Value"],
     ["Generated at", report.generatedAt],
@@ -26,6 +27,11 @@ export function exportReportCsv(report: ExportReport) {
     ["Daily usage minutes", String(profile?.dailyUsageMinutes ?? "")],
     ["Sleep hours", String(profile?.sleepHours ?? "")],
     ["Study hours", String(profile?.studyHours ?? "")],
+    ["Latest session status", session ? (session.endedAt ? "Completed" : "In progress") : "Not started"],
+    ["Latest session planned minutes", String(session?.plannedMinutes ?? "")],
+    ["Latest session duration seconds", String(session?.durationSeconds ?? "")],
+    ["Latest session videos watched", String(session?.videosWatched ?? "")],
+    ["Latest session skip count", String(session?.skipCount ?? "")],
     ["Addiction risk score", String(risk?.addictionRiskScore ?? "")],
     ["Risk category", risk?.finalRiskCategory ?? ""],
     ["Focus score", String(risk?.focusScore ?? "")],

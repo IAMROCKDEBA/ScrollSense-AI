@@ -22,10 +22,11 @@ export default function ReportPage() {
     () => predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs)),
     [cognitiveResult, moodLogs, profile, sessions]
   );
+  const latestSession = sessions.at(-1) ?? null;
 
   const report: ExportReport = {
     profile,
-    latestSession: sessions.at(-1) ?? null,
+    latestSession,
     moodLogs,
     cognitiveResult,
     riskScore,
@@ -81,6 +82,28 @@ export default function ReportPage() {
             This version uses an explainable scoring model inspired by machine-learning classification. Addiction risk increases when daily usage is high, planned time is exceeded, late-night use is frequent, urge to continue is high, mood worsens, sleep is low, study time is low, or cognitive performance is weak.
           </ReportSection>
 
+          <ReportSection title="Session Data Snapshot">
+            {latestSession ? (
+              <div>
+                <div className="mb-3">
+                  <Badge variant={latestSession.endedAt ? "success" : "warning"}>
+                    {latestSession.endedAt ? "Completed session" : "In-progress session"}
+                  </Badge>
+                </div>
+                <div className="grid gap-3 md:grid-cols-4">
+                  <Metric label="Planned time" value={`${formatSessionMinutes(latestSession.plannedMinutes)} min`} />
+                  <Metric label="Actual duration" value={`${Math.round(latestSession.durationSeconds / 60)} min`} />
+                  <Metric label="Videos watched" value={String(latestSession.videosWatched)} />
+                  <Metric label="Skip count" value={String(latestSession.skipCount)} />
+                </div>
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed p-4 text-muted-foreground">
+                No video session has been started yet, so session behavior is not available for this report.
+              </p>
+            )}
+          </ReportSection>
+
           <ReportSection title="Modules">
             Landing page, onboarding form, mood check-ins, YouTube-powered feed with demo fallback, reaction time test, memory recall test, Stroop test, dashboard, recommendations, methodology page, settings, and exportable report.
           </ReportSection>
@@ -121,6 +144,10 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
       <div className="mt-3 leading-7 text-muted-foreground">{children}</div>
     </section>
   );
+}
+
+function formatSessionMinutes(minutes: number) {
+  return Number.isInteger(minutes) ? String(minutes) : minutes.toFixed(2);
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

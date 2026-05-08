@@ -86,7 +86,7 @@ export function SessionHistoryChart({ lineData }: { lineData: SessionPoint[] }) 
     <Card>
       <CardHeader>
         <CardTitle>Session History</CardTitle>
-        <CardDescription>Duration, videos watched, and urge score over saved sessions.</CardDescription>
+        <CardDescription>Duration, videos watched, and urge score over saved and in-progress sessions.</CardDescription>
       </CardHeader>
       <CardContent className="h-80">
         {lineData.length === 0 ? (
@@ -113,7 +113,7 @@ function EmptyState() {
   return (
     <div className="grid h-full place-items-center rounded-lg border border-dashed text-center text-sm text-muted-foreground">
       <div>
-        <p>No saved video sessions yet.</p>
+        <p>No video sessions yet.</p>
         <Button asChild variant="outline" className="mt-3">
           <Link href="/feed">Start a session</Link>
         </Button>

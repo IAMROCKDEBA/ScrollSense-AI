@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3,
@@ -16,6 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Disclaimer } from "@/components/layout/disclaimer";
+import { buildRiskInput } from "@/lib/risk-input";
+import { predictRisk } from "@/lib/risk-engine";
+import { useAppStore } from "@/store/app-store";
 
 const features = [
   { title: "YouTube-powered short-video feed", icon: PlaySquare },
@@ -27,6 +31,28 @@ const features = [
 ];
 
 export default function LandingPage() {
+  const hydrated = useAppStore((state) => state.hydrated);
+  const profile = useAppStore((state) => state.profile);
+  const sessions = useAppStore((state) => state.sessions);
+  const moodLogs = useAppStore((state) => state.moodLogs);
+  const cognitiveResult = useAppStore((state) => state.cognitiveResult);
+
+  const hasAssessmentData = Boolean(profile || sessions.length > 0 || moodLogs.length > 0 || cognitiveResult);
+  const completedDataGroups = [profile, sessions.length > 0, moodLogs.length > 0, cognitiveResult].filter(Boolean).length;
+  const risk = useMemo(() => {
+    if (!hasAssessmentData) return null;
+    return predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs));
+  }, [cognitiveResult, hasAssessmentData, moodLogs, profile, sessions]);
+
+  const scoreRows = risk
+    ? [
+        { label: "Risk", value: risk.addictionRiskScore, tag: risk.finalRiskCategory },
+        { label: "Focus", value: risk.focusScore, tag: scoreTag(risk.focusScore, false) },
+        { label: "Impulse", value: risk.impulseControlScore, tag: scoreTag(risk.impulseControlScore, false) },
+        { label: "Well-being", value: risk.digitalWellbeingScore, tag: scoreTag(risk.digitalWellbeingScore, false) }
+      ]
+    : [];
+
   return (
     <div className="space-y-10">
       <section className="grid min-h-[78vh] items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
@@ -68,30 +94,50 @@ export default function LandingPage() {
           <div className="rounded-lg border bg-card/80 p-4 shadow-glow">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-sm text-muted-foreground">Live assessment preview</div>
+                <div className="text-sm text-muted-foreground">Current assessment</div>
                 <div className="text-xl font-semibold">Risk summary</div>
               </div>
-              <Badge variant="warning">Demo</Badge>
+              <Badge variant={risk ? "success" : "outline"}>
+                {risk ? (completedDataGroups >= 4 ? "Complete data" : "Partial data") : hydrated ? "No data yet" : "Loading"}
+              </Badge>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                ["Risk", "42", "Moderate"],
-                ["Focus", "71", "Stable"],
-                ["Impulse", "58", "Watch"],
-                ["Well-being", "76", "Healthy"]
-              ].map(([label, value, tag]) => (
-                <div key={label} className="rounded-lg border bg-background/60 p-4">
-                  <div className="text-sm text-muted-foreground">{label}</div>
-                  <div className="mt-2 flex items-end justify-between">
-                    <span className="text-3xl font-semibold">{value}</span>
-                    <span className="text-xs text-muted-foreground">{tag}</span>
+            {risk ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {scoreRows.map((item) => (
+                  <div key={item.label} className="rounded-lg border bg-background/60 p-4">
+                    <div className="text-sm text-muted-foreground">{item.label}</div>
+                    <div className="mt-2 flex items-end justify-between">
+                      <span className="text-3xl font-semibold">{item.value}</span>
+                      <span className="text-xs text-muted-foreground">{item.tag}</span>
+                    </div>
+                    <div className="mt-3 h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: `${item.value}%` }} />
+                    </div>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-muted">
-                    <div className="h-2 rounded-full bg-primary" style={{ width: `${Number(value)}%` }} />
-                  </div>
+                ))}
+              </div>
+            ) : !hydrated ? (
+              <div className="rounded-lg border bg-background/60 p-4">
+                <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+                <div className="mt-3 h-3 w-full animate-pulse rounded bg-muted" />
+                <div className="mt-2 h-3 w-2/3 animate-pulse rounded bg-muted" />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed bg-background/60 p-4">
+                <div className="text-lg font-semibold">No result generated yet</div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Complete onboarding, start a feed session, and save mood or cognitive data to generate a real risk summary.
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <Button asChild>
+                    <Link href="/onboarding">Start assessment</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard">Open dashboard</Link>
+                  </Button>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
             <div className="mt-4 rounded-lg border bg-background/60 p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-medium">
                 <ShieldCheck className="h-4 w-4 text-emerald-400" aria-hidden="true" />
@@ -141,4 +187,17 @@ export default function LandingPage() {
       </Card>
     </div>
   );
+}
+
+function scoreTag(value: number, inverted: boolean) {
+  if (inverted) {
+    if (value <= 35) return "Healthy";
+    if (value <= 60) return "Watch";
+    return "Needs attention";
+  }
+
+  if (value >= 75) return "Strong";
+  if (value >= 55) return "Stable";
+  if (value >= 35) return "Watch";
+  return "Needs attention";
 }

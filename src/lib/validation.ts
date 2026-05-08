@@ -1,6 +1,13 @@
 import type { UserProfile } from "@/types";
 
-export type ProfileDraft = Omit<UserProfile, "createdAt">;
+type NumericDraftValue = string;
+
+export type ProfileDraft = Omit<UserProfile, "createdAt" | "age" | "dailyUsageMinutes" | "studyHours" | "sleepHours"> & {
+  age: NumericDraftValue;
+  dailyUsageMinutes: NumericDraftValue;
+  studyHours: NumericDraftValue;
+  sleepHours: NumericDraftValue;
+};
 
 export function validateProfile(profile: Partial<ProfileDraft>) {
   const errors: Partial<Record<keyof ProfileDraft, string>> = {};
@@ -9,22 +16,26 @@ export function validateProfile(profile: Partial<ProfileDraft>) {
     errors.name = "Enter a name with at least 2 characters.";
   }
 
-  if (!Number.isFinite(profile.age) || Number(profile.age) < 8 || Number(profile.age) > 80) {
+  const age = toFiniteNumber(profile.age);
+  if (age === null || age < 8 || age > 80) {
     errors.age = "Enter an age between 8 and 80.";
   }
 
   if (!profile.studentStatus) errors.studentStatus = "Choose your student status.";
   if (!profile.mainPlatform) errors.mainPlatform = "Choose your main short-video platform.";
 
-  if (!Number.isFinite(profile.dailyUsageMinutes) || Number(profile.dailyUsageMinutes) < 0) {
+  const dailyUsageMinutes = toFiniteNumber(profile.dailyUsageMinutes);
+  if (dailyUsageMinutes === null || dailyUsageMinutes < 0) {
     errors.dailyUsageMinutes = "Enter daily usage in minutes.";
   }
 
-  if (!Number.isFinite(profile.studyHours) || Number(profile.studyHours) < 0 || Number(profile.studyHours) > 24) {
+  const studyHours = toFiniteNumber(profile.studyHours);
+  if (studyHours === null || studyHours < 0 || studyHours > 24) {
     errors.studyHours = "Enter study hours between 0 and 24.";
   }
 
-  if (!Number.isFinite(profile.sleepHours) || Number(profile.sleepHours) < 0 || Number(profile.sleepHours) > 24) {
+  const sleepHours = toFiniteNumber(profile.sleepHours);
+  if (sleepHours === null || sleepHours < 0 || sleepHours > 24) {
     errors.sleepHours = "Enter sleep hours between 0 and 24.";
   }
 
@@ -36,4 +47,10 @@ export function validateProfile(profile: Partial<ProfileDraft>) {
     valid: Object.keys(errors).length === 0,
     errors
   };
+}
+
+function toFiniteNumber(value: NumericDraftValue | undefined) {
+  if (value === undefined || value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }

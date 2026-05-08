@@ -12,12 +12,28 @@ import { useAppStore } from "@/store/app-store";
 import type { YouTubeSearchResponse } from "@/types";
 
 export default function SettingsPage() {
+  const hydrated = useAppStore((state) => state.hydrated);
+  const profile = useAppStore((state) => state.profile);
+  const sessions = useAppStore((state) => state.sessions);
+  const moodLogs = useAppStore((state) => state.moodLogs);
+  const cognitiveResult = useAppStore((state) => state.cognitiveResult);
+  const riskScore = useAppStore((state) => state.riskScore);
   const demoMode = useAppStore((state) => state.demoMode);
   const setDemoMode = useAppStore((state) => state.setDemoMode);
   const resetAll = useAppStore((state) => state.resetAll);
   const { theme, setTheme } = useTheme();
   const [feedStatus, setFeedStatus] = useState("Checking video feed...");
   const [feedConnected, setFeedConnected] = useState(false);
+  const [dataStatus, setDataStatus] = useState("");
+  const [isClearingData, setIsClearingData] = useState(false);
+
+  const savedDataCount =
+    (profile ? 1 : 0) +
+    sessions.length +
+    moodLogs.length +
+    (cognitiveResult ? 1 : 0) +
+    (riskScore ? 1 : 0);
+  const hasSavedAssessmentData = savedDataCount > 0;
 
   const checkStatus = useCallback(async () => {
     setFeedStatus("Checking video feed...");
@@ -38,6 +54,19 @@ export default function SettingsPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [checkStatus, demoMode]);
+
+  function clearSavedAssessmentData() {
+    if (isClearingData || !hasSavedAssessmentData) return;
+
+    setIsClearingData(true);
+    setDataStatus("Clearing saved assessment data...");
+
+    window.setTimeout(() => {
+      resetAll();
+      setIsClearingData(false);
+      setDataStatus("Saved assessment data cleared from this browser.");
+    }, 150);
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -83,6 +112,31 @@ export default function SettingsPage() {
             <CardDescription>Theme and assessment data are saved only in this browser.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-background/55 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">Saved assessment status</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {hydrated
+                      ? hasSavedAssessmentData
+                        ? `${savedDataCount} saved item${savedDataCount === 1 ? "" : "s"} in this browser.`
+                        : "No saved assessment data in this browser."
+                      : "Checking saved data..."}
+                  </div>
+                </div>
+                <Badge variant={hasSavedAssessmentData ? "warning" : "success"}>
+                  {hasSavedAssessmentData ? "Data saved" : "Clear"}
+                </Badge>
+              </div>
+
+              <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                <DataPoint label="Profile" value={profile ? "Saved" : "Empty"} />
+                <DataPoint label="Video sessions" value={String(sessions.length)} />
+                <DataPoint label="Mood logs" value={String(moodLogs.length)} />
+                <DataPoint label="Cognitive tests" value={cognitiveResult ? "Saved" : "Empty"} />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Theme</Label>
               <Select value={theme ?? "system"} onChange={(event) => setTheme(event.target.value)}>
@@ -97,13 +151,44 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <Button variant="destructive" onClick={resetAll}>
+            {dataStatus ? (
+              <div
+                className={
+                  isClearingData
+                    ? "rounded-lg border border-amber-500/30 bg-amber-500/12 p-3 text-sm text-amber-200"
+                    : "rounded-lg border border-emerald-500/30 bg-emerald-500/12 p-3 text-sm text-emerald-200"
+                }
+                role="status"
+                aria-live="polite"
+              >
+                {dataStatus}
+              </div>
+            ) : null}
+
+            <Button
+              variant="destructive"
+              onClick={clearSavedAssessmentData}
+              disabled={isClearingData || !hasSavedAssessmentData}
+            >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Clear saved assessment data
+              {isClearingData
+                ? "Clearing..."
+                : hasSavedAssessmentData
+                  ? "Clear saved assessment data"
+                  : "No saved assessment data"}
             </Button>
           </CardContent>
         </Card>
       </section>
+    </div>
+  );
+}
+
+function DataPoint({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border bg-background/45 px-3 py-2">
+      <span>{label}</span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   );
 }

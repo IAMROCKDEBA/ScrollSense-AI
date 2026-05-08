@@ -42,6 +42,7 @@ export default function DashboardPage() {
     const input = buildRiskInput(profile, sessions, cognitiveResult, moodLogs);
     return predictRisk(input);
   }, [cognitiveResult, moodLogs, profile, sessions]);
+  const latestSession = sessions.at(-1);
 
   useEffect(() => {
     saveRiskScore(risk);
@@ -65,7 +66,7 @@ export default function DashboardPage() {
   ];
 
   const lineData = sessions.map((session, index) => ({
-    name: `S${index + 1}`,
+    name: session.endedAt ? `S${index + 1}` : "Active",
     duration: Number.isFinite(session.durationSeconds) ? Math.round(session.durationSeconds / 60) : 0,
     videos: Number.isFinite(session.videosWatched) ? session.videosWatched : 0,
     urge: Number.isFinite(session.urgeToContinueScore) ? session.urgeToContinueScore : 0
@@ -127,6 +128,36 @@ export default function DashboardPage() {
         <ScoreCard title="Impulse Control Score" value={risk.impulseControlScore} description="From planned-vs-actual time, urge, and unintentional opening." />
         <ScoreCard title="Mood Dependency Score" value={risk.moodDependencyScore} description="Higher values mean stronger emotional reliance on scrolling." inverted />
       </section>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle>Latest Video Session</CardTitle>
+              <CardDescription>Started sessions are saved immediately and updated while the timer runs.</CardDescription>
+            </div>
+            {latestSession ? (
+              <Badge variant={latestSession.endedAt ? "success" : "warning"}>
+                {latestSession.endedAt ? "Completed" : "In progress"}
+              </Badge>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {latestSession ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <SessionMetric label="Planned" value={`${formatSessionMinutes(latestSession.plannedMinutes)} min`} />
+              <SessionMetric label="Duration" value={`${Math.round(latestSession.durationSeconds / 60)} min`} />
+              <SessionMetric label="Videos" value={String(latestSession.videosWatched)} />
+              <SessionMetric label="Started" value={new Date(latestSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              No video session data yet. Start a feed session to populate the dashboard and report.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <BehaviorCharts barData={barData} radarData={radarData} />
 
@@ -192,6 +223,19 @@ function Completeness({ label, done }: { label: string; done: boolean }) {
       <Badge variant={done ? "success" : "outline"}>{done ? "Done" : "Missing"}</Badge>
     </div>
   );
+}
+
+function SessionMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-background/55 p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function formatSessionMinutes(minutes: number) {
+  return Number.isInteger(minutes) ? String(minutes) : minutes.toFixed(2);
 }
 
 function ChartGridPlaceholder() {

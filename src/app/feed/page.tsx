@@ -34,7 +34,7 @@ export default function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
-  const [plannedMinutes, setPlannedMinutes] = useState(5);
+  const [plannedMinutes, setPlannedMinutes] = useState("5");
   const [moodBefore, setMoodBefore] = useState<Mood>("Neutral");
   const [reason, setReason] = useState<WatchReason>("Entertainment");
   const [moodAfter, setMoodAfter] = useState<Mood>("Neutral");
@@ -64,12 +64,20 @@ export default function FeedPage() {
   const batchIndex = useRef(0);
   const seenVideoIds = useRef<Set<string>>(new Set());
   const loadingMoreRef = useRef(false);
+  const activeSessionId = useRef<string | null>(null);
 
   const currentVideo = videos[videoIndex] ?? videos[0];
   const averageTimePerVideo = useMemo(
     () => (videosWatched > 0 ? Math.round(durationSeconds / videosWatched) : 0),
     [durationSeconds, videosWatched]
   );
+  const plannedSessionMinutes = useMemo(() => {
+    const parsed = Number(plannedMinutes);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  }, [plannedMinutes]);
+  const plannedSessionSeconds = plannedSessionMinutes * 60;
+  const remainingSeconds = Math.max(0, Math.round(plannedSessionSeconds - durationSeconds));
+  const plannedProgress = Math.min(100, Math.round((durationSeconds / plannedSessionSeconds) * 100));
 
   const loadVideoBatch = useCallback(async (append = false) => {
     if (append && loadingMoreRef.current) return;
@@ -164,14 +172,107 @@ export default function FeedPage() {
   const showWarning = sessionActive && !warningDismissed && (durationSeconds >= 180 || videosWatched >= 8);
 
   function normalizedPlannedMinutes() {
-    return Number.isFinite(plannedMinutes) && plannedMinutes > 0 ? plannedMinutes : 1;
+    return plannedSessionMinutes;
+  }
+
+  const persistCurrentSession = useCallback((overrides: Partial<VideoSession> = {}) => {
+    if (!activeSessionId.current || !sessionStartedAt.current) return;
+
+    const session: VideoSession = {
+      id: activeSessionId.current,
+      plannedMinutes: plannedSessionMinutes,
+      startedAt: new Date(sessionStartedAt.current).toISOString(),
+      durationSeconds,
+      videosWatched,
+      skipCount,
+      nextClicks,
+      averageTimePerVideo,
+      continuedAfterWarning,
+      mindfulPauseCount,
+      urgeToContinueScore: postSessionOpen ? urge : 0,
+      moodBefore,
+      reason,
+      exceededPlannedTime: durationSeconds / 60 > plannedSessionMinutes,
+      ...overrides
+    };
+
+    addSession(session);
+  }, [
+    addSession,
+    averageTimePerVideo,
+    continuedAfterWarning,
+    durationSeconds,
+    mindfulPauseCount,
+    moodBefore,
+    nextClicks,
+    plannedSessionMinutes,
+    postSessionOpen,
+    reason,
+    skipCount,
+    urge,
+    videosWatched
+  ]);
+
+  useEffect(() => {
+    if (!sessionActive) return;
+    if (durationSeconds === 0 || durationSeconds % 5 === 0) {
+      persistCurrentSession();
+    }
+  }, [durationSeconds, persistCurrentSession, sessionActive]);
+
+  useEffect(() => {
+    if (!sessionActive) return;
+
+    function saveBeforeLeaving() {
+      persistCurrentSession();
+    }
+
+    function saveWhenHidden() {
+      if (document.visibilityState === "hidden") {
+        persistCurrentSession();
+      }
+    }
+
+    window.addEventListener("pagehide", saveBeforeLeaving);
+    document.addEventListener("visibilitychange", saveWhenHidden);
+
+    return () => {
+      window.removeEventListener("pagehide", saveBeforeLeaving);
+      document.removeEventListener("visibilitychange", saveWhenHidden);
+    };
+  }, [persistCurrentSession, sessionActive]);
+
+  function createInitialSession(sessionId: string, startedAt: number, plannedMinutes: number): VideoSession {
+    return {
+      id: sessionId,
+      plannedMinutes,
+      startedAt: new Date(startedAt).toISOString(),
+      durationSeconds: 0,
+      videosWatched: 1,
+      skipCount: 0,
+      nextClicks: 0,
+      averageTimePerVideo: 0,
+      continuedAfterWarning: false,
+      mindfulPauseCount: 0,
+      urgeToContinueScore: 0,
+      moodBefore,
+      reason,
+      exceededPlannedTime: false
+    };
   }
 
   function startSession() {
     if (videos.length === 0) return;
-    setPlannedMinutes(normalizedPlannedMinutes());
-    sessionStartedAt.current = Date.now();
-    currentVideoStartedAt.current = Date.now();
+    const plannedMinutes = normalizedPlannedMinutes();
+    const startedAt = Date.now();
+    const sessionId = createId("session");
+
+    activeSessionId.current = sessionId;
+    sessionStartedAt.current = startedAt;
+    currentVideoStartedAt.current = startedAt;
+    addSession(createInitialSession(sessionId, startedAt, plannedMinutes));
+
+    setPlannedMinutes(String(plannedMinutes));
     setSessionActive(true);
     setPostSessionOpen(false);
     setDurationSeconds(0);
@@ -225,11 +326,18 @@ export default function FeedPage() {
   }
 
   function onTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    event.preventDefault();
     event.stopPropagation();
     touchStartY.current = event.touches[0]?.clientY ?? null;
   }
 
+  function onTouchMove(event: React.TouchEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function onTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    event.preventDefault();
     event.stopPropagation();
     if (touchStartY.current === null) return;
     const endY = event.changedTouches[0]?.clientY ?? touchStartY.current;
@@ -237,9 +345,14 @@ export default function FeedPage() {
     touchStartY.current = null;
 
     if (deltaY > 54) {
-      event.preventDefault();
       advanceFromScroll();
     }
+  }
+
+  function onTouchCancel(event: React.TouchEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    touchStartY.current = null;
   }
 
   function startMindfulPause() {
@@ -260,6 +373,10 @@ export default function FeedPage() {
   }
 
   function endSession() {
+    persistCurrentSession({
+      endedAt: new Date().toISOString(),
+      exceededPlannedTime: durationSeconds / 60 > normalizedPlannedMinutes()
+    });
     setSessionActive(false);
     setVideoPlaying(false);
     setPostSessionOpen(true);
@@ -271,8 +388,9 @@ export default function FeedPage() {
       ? new Date(sessionStartedAt.current).toISOString()
       : new Date().toISOString();
     const safePlannedMinutes = normalizedPlannedMinutes();
+    const sessionId = activeSessionId.current ?? createId("session");
     const session: VideoSession = {
-      id: createId("session"),
+      id: sessionId,
       plannedMinutes: safePlannedMinutes,
       startedAt,
       endedAt: new Date().toISOString(),
@@ -302,6 +420,7 @@ export default function FeedPage() {
       focusAfter,
       createdAt: new Date().toISOString()
     });
+    activeSessionId.current = null;
     setPostSessionOpen(false);
   }
 
@@ -326,12 +445,7 @@ export default function FeedPage() {
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="grid min-h-[calc(100svh-11rem)] lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div
-                className="relative grid min-h-[64svh] place-items-center overflow-hidden bg-black sm:min-h-[72svh]"
-                onWheel={sessionActive && !youtubeControlsEnabled ? onWheel : undefined}
-                onTouchStart={sessionActive && !youtubeControlsEnabled ? onTouchStart : undefined}
-                onTouchEnd={sessionActive && !youtubeControlsEnabled ? onTouchEnd : undefined}
-              >
+              <div className="relative grid min-h-[64svh] place-items-center overflow-hidden overscroll-contain bg-black sm:min-h-[72svh]">
                 {loading ? (
                   <div className="text-sm text-white/70">Loading feed...</div>
                 ) : error ? (
@@ -347,7 +461,17 @@ export default function FeedPage() {
                           playing={videoPlaying}
                           interactive={youtubeControlsEnabled}
                         />
-                        {!youtubeControlsEnabled ? <div className="absolute inset-0 z-10 cursor-ns-resize bg-transparent" aria-hidden="true" /> : null}
+                        {!youtubeControlsEnabled ? (
+                          <div
+                            className="absolute inset-0 z-10 cursor-ns-resize touch-none overscroll-contain bg-transparent"
+                            aria-hidden="true"
+                            onWheel={onWheel}
+                            onTouchCancel={onTouchCancel}
+                            onTouchEnd={onTouchEnd}
+                            onTouchMove={onTouchMove}
+                            onTouchStart={onTouchStart}
+                          />
+                        ) : null}
                       </>
                     ) : (
                       <div className="relative h-full min-h-[64svh] w-full overflow-hidden sm:min-h-[68svh]">
@@ -422,7 +546,13 @@ export default function FeedPage() {
                   {!sessionActive && !postSessionOpen ? (
                     <div className="grid gap-3">
                       <Field label="Planned session minutes">
-                        <Input type="number" min={1} max={120} value={plannedMinutes} onChange={(event) => setPlannedMinutes(Number(event.target.value))} />
+                        <Input
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={plannedMinutes}
+                          onChange={(event) => setPlannedMinutes(event.target.value)}
+                        />
                       </Field>
                       <Field label="Mood before">
                         <MoodSelect value={moodBefore} onChange={setMoodBefore} />
@@ -441,7 +571,21 @@ export default function FeedPage() {
 
                   {sessionActive ? (
                     <div className="grid gap-3">
+                      <Metric label="Planned time" value={`${formatMinutes(plannedSessionMinutes)} min`} />
                       <Metric label="Duration" value={formatDuration(durationSeconds)} />
+                      <Metric
+                        label="Time remaining"
+                        value={durationSeconds >= plannedSessionSeconds ? "Plan exceeded" : formatDuration(remainingSeconds)}
+                      />
+                      <div className="rounded-lg border bg-background/55 p-3">
+                        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                          <span>Planned progress</span>
+                          <span>{plannedProgress}%</span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${plannedProgress}%` }} />
+                        </div>
+                      </div>
                       <Metric label="Videos watched" value={String(videosWatched)} />
                       <Metric label="Queued videos" value={String(Math.max(0, videos.length - videoIndex - 1))} />
                       <Metric label="Skip count" value={String(skipCount)} />
@@ -587,6 +731,10 @@ function Metric({ label, value }: { label: string; value: string }) {
       <div className="mt-1 text-xl font-semibold">{value}</div>
     </div>
   );
+}
+
+function formatMinutes(minutes: number) {
+  return Number.isInteger(minutes) ? String(minutes) : minutes.toFixed(2);
 }
 
 function shuffleVideos(videos: VideoItem[]) {

@@ -50,12 +50,12 @@ const fieldOrder: Array<keyof ProfileDraft> = [
 
 const emptyDraft: ProfileDraft = {
   name: "",
-  age: 18,
+  age: "18",
   studentStatus: "college",
-  dailyUsageMinutes: 60,
+  dailyUsageMinutes: "60",
   mainPlatform: "YouTube Shorts",
-  studyHours: 3,
-  sleepHours: 7,
+  studyHours: "3",
+  sleepHours: "7",
   lateNightUsage: "Sometimes",
   losesTrackOfTime: "Sometimes",
   unintentionalOpening: "Sometimes"
@@ -64,12 +64,12 @@ const emptyDraft: ProfileDraft = {
 function profileToDraft(profile: UserProfile): ProfileDraft {
   return {
     name: profile.name,
-    age: profile.age,
+    age: String(profile.age),
     studentStatus: profile.studentStatus,
-    dailyUsageMinutes: profile.dailyUsageMinutes,
+    dailyUsageMinutes: String(profile.dailyUsageMinutes),
     mainPlatform: profile.mainPlatform,
-    studyHours: profile.studyHours,
-    sleepHours: profile.sleepHours,
+    studyHours: String(profile.studyHours),
+    sleepHours: String(profile.sleepHours),
     lateNightUsage: profile.lateNightUsage,
     losesTrackOfTime: profile.losesTrackOfTime,
     unintentionalOpening: profile.unintentionalOpening
@@ -125,8 +125,16 @@ export default function OnboardingPage() {
 
     try {
       saveProfile({
-        ...draft,
         name: draft.name.trim(),
+        age: Number(draft.age),
+        studentStatus: draft.studentStatus,
+        dailyUsageMinutes: Number(draft.dailyUsageMinutes),
+        mainPlatform: draft.mainPlatform,
+        studyHours: Number(draft.studyHours),
+        sleepHours: Number(draft.sleepHours),
+        lateNightUsage: draft.lateNightUsage,
+        losesTrackOfTime: draft.losesTrackOfTime,
+        unintentionalOpening: draft.unintentionalOpening,
         createdAt: profile?.createdAt ?? new Date().toISOString()
       });
       window.location.href = "/mood";
@@ -201,7 +209,7 @@ export default function OnboardingPage() {
                   min={8}
                   max={80}
                   value={draft.age}
-                  onChange={(event) => update("age", Number(event.target.value))}
+                  onChange={(event) => update("age", event.target.value)}
                   aria-invalid={Boolean(errors.age)}
                   aria-describedby={errors.age ? `${fieldIds.age}-error` : undefined}
                   required
@@ -248,7 +256,7 @@ export default function OnboardingPage() {
                   type="number"
                   min={0}
                   value={draft.dailyUsageMinutes}
-                  onChange={(event) => update("dailyUsageMinutes", Number(event.target.value))}
+                  onChange={(event) => update("dailyUsageMinutes", event.target.value)}
                   aria-invalid={Boolean(errors.dailyUsageMinutes)}
                   aria-describedby={errors.dailyUsageMinutes ? `${fieldIds.dailyUsageMinutes}-error` : undefined}
                   required
@@ -263,7 +271,7 @@ export default function OnboardingPage() {
                   max={24}
                   step="0.25"
                   value={draft.studyHours}
-                  onChange={(event) => update("studyHours", Number(event.target.value))}
+                  onChange={(event) => update("studyHours", event.target.value)}
                   aria-invalid={Boolean(errors.studyHours)}
                   aria-describedby={errors.studyHours ? `${fieldIds.studyHours}-error` : undefined}
                   required
@@ -278,7 +286,7 @@ export default function OnboardingPage() {
                   max={24}
                   step="0.25"
                   value={draft.sleepHours}
-                  onChange={(event) => update("sleepHours", Number(event.target.value))}
+                  onChange={(event) => update("sleepHours", event.target.value)}
                   aria-invalid={Boolean(errors.sleepHours)}
                   aria-describedby={errors.sleepHours ? `${fieldIds.sleepHours}-error` : undefined}
                   required

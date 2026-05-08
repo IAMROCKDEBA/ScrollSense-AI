@@ -44,6 +44,15 @@ function snapshot(state: AppState): StoredAppData {
   };
 }
 
+function upsertSession(sessions: VideoSession[], session: VideoSession) {
+  const existingIndex = sessions.findIndex((item) => item.id === session.id);
+  if (existingIndex === -1) return [...sessions, session];
+
+  const nextSessions = [...sessions];
+  nextSessions[existingIndex] = session;
+  return nextSessions;
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   ...defaultStoredData,
   hydrated: false,
@@ -56,7 +65,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   addMoodLog: (log) =>
     set((state) => persist({ ...snapshot(state), moodLogs: [...state.moodLogs, log] })),
   addSession: (session) =>
-    set((state) => persist({ ...snapshot(state), sessions: [...state.sessions, session] })),
+    set((state) => persist({ ...snapshot(state), sessions: upsertSession(state.sessions, session) })),
   saveCognitiveResult: (result) =>
     set((state) =>
       persist({
