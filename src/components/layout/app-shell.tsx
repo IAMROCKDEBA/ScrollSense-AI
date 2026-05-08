@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r bg-background/90 backdrop-blur-xl lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r bg-card/82 shadow-2xl shadow-black/10 backdrop-blur-xl lg:block">
         <div className="flex h-full flex-col">
           <Link href="/" className="flex items-center gap-3 border-b px-5 py-5">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary text-primary-foreground">
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                    active && "bg-primary/12 text-primary"
+                    active && "border border-primary/25 bg-primary/14 text-primary shadow-glow"
                   )}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b bg-background/88 px-4 py-3 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-20 border-b bg-card/88 px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-xl lg:hidden">
         <div className="mb-3 flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Activity className="h-4 w-4" aria-hidden="true" />
@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   "flex min-w-fit items-center gap-2 rounded-lg border px-3 py-2 text-xs text-muted-foreground",
-                  active && "border-primary/50 bg-primary/12 text-primary"
+                  active && "border-primary/50 bg-primary/14 text-primary shadow-glow"
                 )}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />

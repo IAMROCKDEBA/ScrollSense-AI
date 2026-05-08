@@ -1,4 +1,4 @@
-const CACHE_NAME = "scrollsense-ai-v10";
+const CACHE_NAME = "scrollsense-ai-v12";
 const APP_SHELL = [
   "/",
   "/onboarding",
@@ -15,6 +15,34 @@ const APP_SHELL = [
   "/icons/icon-512.png",
   "/icons/icon.svg"
 ];
+const DEMO_API_RESPONSE = {
+  mode: "demo",
+  videos: [
+    {
+      id: "M7lc1UVf-VE",
+      title: "Demo embed: YouTube player sample",
+      channelTitle: "YouTube Developers",
+      thumbnail: "https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg",
+      embedUrl: "https://www.youtube.com/embed/M7lc1UVf-VE"
+    },
+    {
+      id: "jNQXAC9IVRw",
+      title: "Demo embed: short public archive clip",
+      channelTitle: "Public YouTube Archive",
+      thumbnail: "https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg",
+      embedUrl: "https://www.youtube.com/embed/jNQXAC9IVRw"
+    },
+    {
+      id: "BaW_jenozKc",
+      title: "Demo embed: developer test clip",
+      channelTitle: "YouTube Developers",
+      thumbnail: "https://i.ytimg.com/vi/BaW_jenozKc/hqdefault.jpg",
+      embedUrl: "https://www.youtube.com/embed/BaW_jenozKc"
+    }
+  ],
+  message: "Offline demo mode is active. Reconnect to refresh public videos.",
+  fetchedAt: new Date().toISOString()
+};
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -53,15 +81,9 @@ self.addEventListener("fetch", (event) => {
           caches.match(request).then(
             (cached) =>
               cached ||
-              new Response(
-                JSON.stringify({
-                  mode: "demo",
-                  videos: [],
-                  message: "Offline mode is active. Reconnect to refresh videos.",
-                  fetchedAt: new Date().toISOString()
-                }),
-                { headers: { "Content-Type": "application/json" } }
-              )
+              new Response(JSON.stringify({ ...DEMO_API_RESPONSE, fetchedAt: new Date().toISOString() }), {
+                headers: { "Content-Type": "application/json" }
+              })
           )
         )
     );

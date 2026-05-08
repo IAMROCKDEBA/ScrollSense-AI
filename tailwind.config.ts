@@ -41,7 +41,7 @@ const config: Config = {
         }
       },
       boxShadow: {
-        glow: "0 0 36px rgba(56, 189, 248, 0.16)"
+        glow: "0 0 44px hsl(var(--primary) / 0.22), 0 18px 72px hsl(var(--secondary) / 0.14)"
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"]

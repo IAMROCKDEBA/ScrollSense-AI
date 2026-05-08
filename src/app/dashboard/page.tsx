@@ -37,33 +37,36 @@ export default function DashboardPage() {
   const moodLogs = useAppStore((state) => state.moodLogs);
   const cognitiveResult = useAppStore((state) => state.cognitiveResult);
   const saveRiskScore = useAppStore((state) => state.saveRiskScore);
+  const hasAssessmentData = Boolean(profile || sessions.length > 0 || moodLogs.length > 0 || cognitiveResult);
 
   const risk = useMemo(() => {
+    if (!hasAssessmentData) return null;
     const input = buildRiskInput(profile, sessions, cognitiveResult, moodLogs);
     return predictRisk(input);
-  }, [cognitiveResult, moodLogs, profile, sessions]);
+  }, [cognitiveResult, hasAssessmentData, moodLogs, profile, sessions]);
   const latestSession = sessions.at(-1);
 
   useEffect(() => {
+    if (!risk) return;
     saveRiskScore(risk);
   }, [risk, saveRiskScore]);
 
-  const barData = [
+  const barData = risk ? [
     { name: "Risk", value: risk.addictionRiskScore },
     { name: "Focus", value: risk.focusScore },
     { name: "Memory", value: risk.memoryScore },
     { name: "Impulse", value: risk.impulseControlScore },
     { name: "Mood", value: risk.moodDependencyScore },
     { name: "Well-being", value: risk.digitalWellbeingScore }
-  ];
+  ] : [];
 
-  const radarData = [
+  const radarData = risk ? [
     { subject: "Focus", value: risk.focusScore },
     { subject: "Memory", value: risk.memoryScore },
     { subject: "Impulse", value: risk.impulseControlScore },
     { subject: "Mood stability", value: 100 - risk.moodDependencyScore },
     { subject: "Well-being", value: risk.digitalWellbeingScore }
-  ];
+  ] : [];
 
   const lineData = sessions.map((session, index) => ({
     name: session.endedAt ? `S${index + 1}` : "Active",
@@ -91,23 +94,44 @@ export default function DashboardPage() {
 
       <Disclaimer />
 
-      <section className="grid gap-5 xl:grid-cols-[0.7fr_0.3fr]">
+      {!risk ? (
         <Card>
           <CardHeader>
-            <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <CardTitle>Overall Risk Summary</CardTitle>
-                <CardDescription>Risk categories: 0-25 Low, 26-50 Moderate, 51-75 High, 76-100 Critical.</CardDescription>
-              </div>
-              <Badge variant={categoryTone[risk.finalRiskCategory]}>{risk.finalRiskCategory}</Badge>
-            </div>
+            <CardTitle>No assessment result yet</CardTitle>
+            <CardDescription>
+              The dashboard will generate charts and scores after real assessment data is saved.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <ProgressRing value={risk.addictionRiskScore} label="Risk" tone={risk.addictionRiskScore > 75 ? "red" : risk.addictionRiskScore > 50 ? "orange" : risk.addictionRiskScore > 25 ? "yellow" : "green"} />
-            <ProgressRing value={risk.focusScore} label="Focus" tone="sky" />
-            <ProgressRing value={risk.digitalWellbeingScore} label="Well-being" tone="green" />
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Button asChild>
+              <Link href="/onboarding">Start onboarding</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/feed">Start video session</Link>
+            </Button>
           </CardContent>
         </Card>
+      ) : null}
+
+      <section className="grid gap-5 xl:grid-cols-[0.7fr_0.3fr]">
+        {risk ? (
+          <Card>
+            <CardHeader>
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle>Overall Risk Summary</CardTitle>
+                  <CardDescription>Risk categories: 0-25 Low, 26-50 Moderate, 51-75 High, 76-100 Critical.</CardDescription>
+                </div>
+                <Badge variant={categoryTone[risk.finalRiskCategory]}>{risk.finalRiskCategory}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <ProgressRing value={risk.addictionRiskScore} label="Risk" tone={risk.addictionRiskScore > 75 ? "red" : risk.addictionRiskScore > 50 ? "orange" : risk.addictionRiskScore > 25 ? "yellow" : "green"} />
+              <ProgressRing value={risk.focusScore} label="Focus" tone="sky" />
+              <ProgressRing value={risk.digitalWellbeingScore} label="Well-being" tone="green" />
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader>
@@ -123,11 +147,13 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-3">
-        <ScoreCard title="Memory Score" value={risk.memoryScore} description="From the memory recall test." />
-        <ScoreCard title="Impulse Control Score" value={risk.impulseControlScore} description="From planned-vs-actual time, urge, and unintentional opening." />
-        <ScoreCard title="Mood Dependency Score" value={risk.moodDependencyScore} description="Higher values mean stronger emotional reliance on scrolling." inverted />
-      </section>
+      {risk ? (
+        <section className="grid gap-5 lg:grid-cols-3">
+          <ScoreCard title="Memory Score" value={risk.memoryScore} description="From the memory recall test." />
+          <ScoreCard title="Impulse Control Score" value={risk.impulseControlScore} description="From planned-vs-actual time, urge, and unintentional opening." />
+          <ScoreCard title="Mood Dependency Score" value={risk.moodDependencyScore} description="Higher values mean stronger emotional reliance on scrolling." inverted />
+        </section>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -159,31 +185,33 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <BehaviorCharts barData={barData} radarData={radarData} />
+      {risk ? <BehaviorCharts barData={barData} radarData={radarData} /> : null}
 
-      <section className="grid gap-5 xl:grid-cols-[0.62fr_0.38fr]">
-        <SessionHistoryChart lineData={lineData} />
+      {risk ? (
+        <section className="grid gap-5 xl:grid-cols-[0.62fr_0.38fr]">
+          <SessionHistoryChart lineData={lineData} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 3 Risk Factors</CardTitle>
-            <CardDescription>Explainable outputs from the local scoring engine.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {risk.topRiskFactors.map((factor, index) => (
-              <div key={factor} className="flex gap-3 rounded-lg border bg-background/55 p-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
-                  {index + 1}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 3 Risk Factors</CardTitle>
+              <CardDescription>Explainable outputs from the local scoring engine.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {risk.topRiskFactors.map((factor, index) => (
+                <div key={factor} className="flex gap-3 rounded-lg border bg-background/55 p-3">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
+                    {index + 1}
+                  </div>
+                  <div className="text-sm">{factor}</div>
                 </div>
-                <div className="text-sm">{factor}</div>
+              ))}
+              <div className="rounded-lg border bg-muted/35 p-3 text-sm text-muted-foreground">
+                {risk.explanation}
               </div>
-            ))}
-            <div className="rounded-lg border bg-muted/35 p-3 text-sm text-muted-foreground">
-              {risk.explanation}
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
     </div>
   );
 }

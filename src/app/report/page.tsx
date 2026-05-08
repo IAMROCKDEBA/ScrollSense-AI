@@ -17,11 +17,12 @@ export default function ReportPage() {
   const sessions = useAppStore((state) => state.sessions);
   const moodLogs = useAppStore((state) => state.moodLogs);
   const cognitiveResult = useAppStore((state) => state.cognitiveResult);
+  const hasAssessmentData = Boolean(profile || sessions.length > 0 || moodLogs.length > 0 || cognitiveResult);
 
-  const riskScore = useMemo(
-    () => predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs)),
-    [cognitiveResult, moodLogs, profile, sessions]
-  );
+  const riskScore = useMemo(() => {
+    if (!hasAssessmentData) return null;
+    return predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs));
+  }, [cognitiveResult, hasAssessmentData, moodLogs, profile, sessions]);
   const latestSession = sessions.at(-1) ?? null;
 
   const report: ExportReport = {
@@ -109,19 +110,27 @@ export default function ReportPage() {
           </ReportSection>
 
           <ReportSection title="Results Interpretation">
-            <div className="grid gap-3 md:grid-cols-3">
-              <Metric label="Risk category" value={riskScore.finalRiskCategory} />
-              <Metric label="Addiction risk" value={`${riskScore.addictionRiskScore}/100`} />
-              <Metric label="Digital well-being" value={`${riskScore.digitalWellbeingScore}/100`} />
-            </div>
-            <div className="mt-4">
-              <Badge variant="outline">Top factors</Badge>
-              <ul className="mt-3 list-inside list-disc space-y-1 text-muted-foreground">
-                {riskScore.topRiskFactors.map((factor) => (
-                  <li key={factor}>{factor}</li>
-                ))}
-              </ul>
-            </div>
+            {riskScore ? (
+              <>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Metric label="Risk category" value={riskScore.finalRiskCategory} />
+                  <Metric label="Addiction risk" value={`${riskScore.addictionRiskScore}/100`} />
+                  <Metric label="Digital well-being" value={`${riskScore.digitalWellbeingScore}/100`} />
+                </div>
+                <div className="mt-4">
+                  <Badge variant="outline">Top factors</Badge>
+                  <ul className="mt-3 list-inside list-disc space-y-1 text-muted-foreground">
+                    {riskScore.topRiskFactors.map((factor) => (
+                      <li key={factor}>{factor}</li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <p className="rounded-lg border border-dashed p-4 text-muted-foreground">
+                No result has been generated yet because no assessment data has been saved.
+              </p>
+            )}
           </ReportSection>
 
           <ReportSection title="Limitations">

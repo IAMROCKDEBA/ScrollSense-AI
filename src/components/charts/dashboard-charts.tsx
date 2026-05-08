@@ -53,10 +53,10 @@ export function BehaviorCharts({
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis domain={[0, 100]} stroke="#94a3b8" />
-              <Tooltip contentStyle={{ background: "#111827", border: "1px solid #334155", borderRadius: 8 }} />
-              <Bar dataKey="value" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+              <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} />
+              <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -70,9 +70,9 @@ export function BehaviorCharts({
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={radarData}>
               <PolarGrid stroke="rgba(148, 163, 184, 0.28)" />
-              <PolarAngleAxis dataKey="subject" stroke="#94a3b8" />
-              <Radar dataKey="value" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.32} />
-              <Tooltip contentStyle={{ background: "#111827", border: "1px solid #334155", borderRadius: 8 }} />
+              <PolarAngleAxis dataKey="subject" stroke="hsl(var(--muted-foreground))" />
+              <Radar dataKey="value" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary))" fillOpacity={0.32} />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} />
             </RadarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -95,12 +95,12 @@ export function SessionHistoryChart({ lineData }: { lineData: SessionPoint[] }) 
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={lineData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip contentStyle={{ background: "#111827", border: "1px solid #334155", borderRadius: 8 }} />
-              <Line type="monotone" dataKey="duration" stroke="#38bdf8" strokeWidth={2} />
-              <Line type="monotone" dataKey="videos" stroke="#22c55e" strokeWidth={2} />
-              <Line type="monotone" dataKey="urge" stroke="#f59e0b" strokeWidth={2} />
+              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} />
+              <Line type="monotone" dataKey="duration" stroke="hsl(var(--primary))" strokeWidth={2} />
+              <Line type="monotone" dataKey="videos" stroke="hsl(var(--success))" strokeWidth={2} />
+              <Line type="monotone" dataKey="urge" stroke="hsl(var(--warning))" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         )}

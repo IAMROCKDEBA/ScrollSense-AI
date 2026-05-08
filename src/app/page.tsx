@@ -55,23 +55,29 @@ export default function LandingPage() {
 
   return (
     <div className="space-y-10">
-      <section className="grid min-h-[78vh] items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid min-h-[78vh] min-w-0 items-center gap-8 overflow-hidden lg:grid-cols-[1.05fr_0.95fr]">
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55 }}
-          className="space-y-6"
+          className="min-w-0 max-w-[calc(100vw-2rem)] space-y-6 lg:max-w-none"
         >
-          <Badge variant="outline" className="border-primary/35 bg-primary/10 text-primary">
-            AI-Powered Short-Form Video Addiction Risk Predictor and Digital Well-being Analyzer
+          <Badge variant="outline" className="w-full max-w-[calc(100vw-2rem)] whitespace-normal break-words border-primary/35 bg-primary/10 text-left leading-5 text-primary [overflow-wrap:anywhere]">
+            <span className="sm:hidden">AI-powered short-video well-being analyzer</span>
+            <span className="hidden sm:inline">
+              AI-Powered Short-Form Video Addiction Risk Predictor and Digital Well-being Analyzer
+            </span>
           </Badge>
           <div className="space-y-4">
-            <h1 className="max-w-4xl text-4xl font-semibold tracking-normal sm:text-5xl lg:text-6xl">
-              Understand your short-form video habits before they control you.
+            <h1 className="max-w-[calc(100vw-2rem)] break-words text-[1.65rem] font-semibold leading-tight tracking-normal sm:max-w-4xl sm:text-5xl lg:text-6xl">
+              <span className="block">Understand your</span>
+              <span className="block">short-form video habits</span>
+              <span className="block">before they control you.</span>
             </h1>
-            <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-              An AI-powered digital well-being analyzer that estimates addiction risk using
-              short-video behavior, mood patterns, and cognitive performance.
+            <p className="max-w-[calc(100vw-2rem)] text-sm leading-7 text-muted-foreground sm:max-w-2xl sm:text-lg">
+              <span className="block sm:inline">An AI-powered digital well-being analyzer</span>{" "}
+              <span className="block sm:inline">that estimates addiction risk using</span>{" "}
+              <span className="block sm:inline">short-video behavior, mood patterns, and cognitive performance.</span>
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -89,7 +95,7 @@ export default function LandingPage() {
           initial={false}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.12, duration: 0.6 }}
-          className="relative"
+          className="relative min-w-0"
         >
           <div className="rounded-lg border bg-card/80 p-4 shadow-glow">
             <div className="mb-4 flex items-center justify-between">

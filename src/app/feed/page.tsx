@@ -80,7 +80,7 @@ export default function FeedPage() {
   const plannedProgress = Math.min(100, Math.round((durationSeconds / plannedSessionSeconds) * 100));
 
   const loadVideoBatch = useCallback(async (append = false) => {
-    if (append && loadingMoreRef.current) return;
+    if (append && loadingMoreRef.current) return 0;
 
     if (append) {
       loadingMoreRef.current = true;
@@ -128,8 +128,10 @@ export default function FeedPage() {
             : "No new videos were returned in this batch. Try again or switch demo mode."
           : data.message ?? `Loaded ${nextVideos.length} public videos.`
       );
+      return nextVideos.length;
     } catch {
       setError("Video loading failed. Demo mode can still be used from Preferences.");
+      return 0;
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -290,13 +292,16 @@ export default function FeedPage() {
   function nextVideo() {
     if (!sessionActive || pauseSeconds > 0) return;
     if (videoIndex >= videos.length - 1) {
-      void loadVideoBatch(true);
+      void loadMoreAndAdvance();
       return;
     }
 
+    advanceToVideo(videoIndex + 1);
+  }
+
+  function advanceToVideo(nextIndex: number, shouldPrefetch = true) {
     const elapsedOnVideo = currentVideoStartedAt.current ? (Date.now() - currentVideoStartedAt.current) / 1000 : 0;
     if (elapsedOnVideo < 7) setSkipCount((count) => count + 1);
-    const nextIndex = videoIndex + 1;
     currentVideoStartedAt.current = Date.now();
     setVideoIndex(nextIndex);
     setVideosWatched((count) => count + 1);
@@ -304,8 +309,15 @@ export default function FeedPage() {
     setVideoPlaying(true);
     setYoutubeControlsEnabled(false);
 
-    if (videos.length - nextIndex <= 3) {
+    if (shouldPrefetch && videos.length - nextIndex <= 3) {
       void loadVideoBatch(true);
+    }
+  }
+
+  async function loadMoreAndAdvance() {
+    const added = await loadVideoBatch(true);
+    if (added > 0) {
+      advanceToVideo(videoIndex + 1, false);
     }
   }
 

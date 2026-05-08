@@ -23,13 +23,14 @@ export default function RecommendationsPage() {
   const sessions = useAppStore((state) => state.sessions);
   const moodLogs = useAppStore((state) => state.moodLogs);
   const cognitiveResult = useAppStore((state) => state.cognitiveResult);
+  const hasAssessmentData = Boolean(profile || sessions.length > 0 || moodLogs.length > 0 || cognitiveResult);
 
-  const risk = useMemo(
-    () => predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs)),
-    [cognitiveResult, moodLogs, profile, sessions]
-  );
+  const risk = useMemo(() => {
+    if (!hasAssessmentData) return null;
+    return predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs));
+  }, [cognitiveResult, hasAssessmentData, moodLogs, profile, sessions]);
 
-  const recommendationsByCategory = groupRecommendations(risk.recommendations);
+  const recommendationsByCategory = groupRecommendations(risk?.recommendations ?? []);
 
   return (
     <div className="space-y-6">
@@ -40,85 +41,112 @@ export default function RecommendationsPage() {
         </p>
       </div>
 
-      <section className="grid gap-5 xl:grid-cols-[0.68fr_0.32fr]">
-        <div className="space-y-5">
-          {(["Immediate", "7-day plan", "Study routine", "Reflection"] as Recommendation["category"][]).map((category) => {
-            const Icon = categoryIcons[category];
-            const items = recommendationsByCategory[category] ?? [];
-            return (
-              <Card key={category}>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/12 text-primary">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <CardTitle>{category}</CardTitle>
-                      <CardDescription>{descriptionFor(category)}</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid gap-3">
-                  {items.map((item) => (
-                    <div key={item.id} className="rounded-lg border bg-background/55 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="font-medium">{item.title}</h2>
-                        <Badge variant={item.priority === "high" ? "danger" : item.priority === "medium" ? "warning" : "outline"}>
-                          {item.priority}
-                        </Badge>
+      {!risk ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>No personalized plan yet</CardTitle>
+            <CardDescription>
+              Recommendations are generated only after real assessment data exists.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Button asChild>
+              <Link href="/onboarding">Start onboarding</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/feed">Start video session</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {risk ? (
+        <section className="grid gap-5 xl:grid-cols-[0.68fr_0.32fr]">
+          <div className="space-y-5">
+            {(["Immediate", "7-day plan", "Study routine", "Reflection"] as Recommendation["category"][]).map((category) => {
+              const Icon = categoryIcons[category];
+              const items = recommendationsByCategory[category] ?? [];
+              return (
+                <Card key={category}>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/12 text-primary">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{item.detail}</p>
+                      <div>
+                        <CardTitle>{category}</CardTitle>
+                        <CardDescription>{descriptionFor(category)}</CardDescription>
+                      </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardHeader>
+                  <CardContent className="grid gap-3">
+                    {items.length === 0 ? (
+                      <div className="rounded-lg border border-dashed bg-background/40 p-4 text-sm text-muted-foreground">
+                        No urgent action in this category from the current data.
+                      </div>
+                    ) : (
+                      items.map((item) => (
+                        <div key={item.id} className="rounded-lg border bg-background/55 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="font-medium">{item.title}</h2>
+                            <Badge variant={item.priority === "high" ? "danger" : item.priority === "medium" ? "warning" : "outline"}>
+                              {item.priority}
+                            </Badge>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">{item.detail}</p>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-        <div className="space-y-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current estimate</CardTitle>
-              <CardDescription>Generated by the local explainable scoring engine.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Metric label="Risk category" value={risk.finalRiskCategory} />
-              <Metric label="Risk score" value={`${risk.addictionRiskScore}/100`} />
-              <Metric label="Digital well-being" value={`${risk.digitalWellbeingScore}/100`} />
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/dashboard">Review dashboard</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-5">
+            <Card>
+              <CardHeader>
+                <CardTitle>Current estimate</CardTitle>
+                <CardDescription>Generated by the local explainable scoring engine.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Metric label="Risk category" value={risk.finalRiskCategory} />
+                <Metric label="Risk score" value={`${risk.addictionRiskScore}/100`} />
+                <Metric label="Digital well-being" value={`${risk.digitalWellbeingScore}/100`} />
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/dashboard">Review dashboard</Link>
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Moon className="h-5 w-5 text-sky-300" aria-hidden="true" />
-                <CardTitle>Study-friendly digital routine</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Start with study before entertainment, especially on exam or assignment days.</p>
-              <p>Keep a planned time limit visible before opening any short-video app.</p>
-              <p>Use the 30-second pause when scrolling feels automatic.</p>
-              <p>Keep the last 45 minutes before sleep screen-light and low-stimulation.</p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Moon className="h-5 w-5 text-sky-300" aria-hidden="true" />
+                  <CardTitle>Study-friendly digital routine</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Start with study before entertainment, especially on exam or assignment days.</p>
+                <p>Keep a planned time limit visible before opening any short-video app.</p>
+                <p>Use the 30-second pause when scrolling feels automatic.</p>
+                <p>Keep the last 45 minutes before sleep screen-light and low-stimulation.</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Reflection questions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>What emotion most often starts the scrolling session?</p>
-              <p>Did the session help your original goal, or did it replace it?</p>
-              <p>What offline action could satisfy the same need for five minutes?</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+            <Card>
+              <CardHeader>
+                <CardTitle>Reflection questions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>What emotion most often starts the scrolling session?</p>
+                <p>Did the session help your original goal, or did it replace it?</p>
+                <p>What offline action could satisfy the same need for five minutes?</p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

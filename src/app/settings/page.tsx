@@ -134,6 +134,7 @@ export default function SettingsPage() {
                 <DataPoint label="Video sessions" value={String(sessions.length)} />
                 <DataPoint label="Mood logs" value={String(moodLogs.length)} />
                 <DataPoint label="Cognitive tests" value={cognitiveResult ? "Saved" : "Empty"} />
+                <DataPoint label="Risk score" value={riskScore ? "Saved" : "Empty"} />
               </div>
             </div>
 

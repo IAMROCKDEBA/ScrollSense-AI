@@ -3,43 +3,55 @@
 @tailwind utilities;
 
 :root {
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --muted: 214 32% 91%;
-  --muted-foreground: 215 16% 42%;
-  --primary: 199 89% 48%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 250 95% 76%;
-  --secondary-foreground: 222 47% 11%;
-  --accent: 159 64% 40%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214 32% 85%;
-  --input: 214 32% 85%;
-  --ring: 199 89% 48%;
+  --background: 42 43% 93%;
+  --foreground: 22 31% 10%;
+  --card: 39 58% 97%;
+  --card-foreground: 22 31% 10%;
+  --muted: 38 31% 84%;
+  --muted-foreground: 28 11% 36%;
+  --primary: 174 100% 22%;
+  --primary-foreground: 39 58% 97%;
+  --secondary: 338 44% 44%;
+  --secondary-foreground: 39 58% 97%;
+  --accent: 35 77% 44%;
+  --accent-foreground: 30 44% 11%;
+  --destructive: 354 70% 50%;
+  --destructive-foreground: 39 58% 97%;
+  --success: 162 66% 34%;
+  --success-foreground: 164 80% 19%;
+  --warning: 36 86% 49%;
+  --warning-foreground: 30 88% 24%;
+  --danger: 354 70% 50%;
+  --danger-foreground: 354 78% 31%;
+  --border: 33 28% 73%;
+  --input: 33 28% 73%;
+  --ring: 174 100% 22%;
 }
 
 .dark {
-  --background: 222 47% 8%;
-  --foreground: 210 40% 98%;
-  --card: 221 39% 14%;
-  --card-foreground: 210 40% 98%;
-  --muted: 217 33% 18%;
-  --muted-foreground: 215 20% 68%;
-  --primary: 199 89% 58%;
-  --primary-foreground: 222 47% 8%;
-  --secondary: 250 95% 76%;
-  --secondary-foreground: 222 47% 8%;
-  --accent: 160 84% 39%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217 33% 24%;
-  --input: 217 33% 24%;
-  --ring: 199 89% 58%;
+  --background: 24 27% 4%;
+  --foreground: 42 55% 92%;
+  --card: 22 34% 9%;
+  --card-foreground: 42 55% 92%;
+  --muted: 21 29% 14%;
+  --muted-foreground: 36 18% 68%;
+  --primary: 166 91% 57%;
+  --primary-foreground: 22 47% 6%;
+  --secondary: 329 87% 72%;
+  --secondary-foreground: 26 42% 7%;
+  --accent: 42 94% 70%;
+  --accent-foreground: 34 78% 12%;
+  --destructive: 354 100% 70%;
+  --destructive-foreground: 42 55% 94%;
+  --success: 158 77% 53%;
+  --success-foreground: 152 79% 83%;
+  --warning: 42 94% 70%;
+  --warning-foreground: 41 100% 86%;
+  --danger: 354 100% 70%;
+  --danger-foreground: 354 100% 86%;
+  --border: 22 22% 22%;
+  --input: 22 22% 23%;
+  --ring: 166 91% 57%;
 }
 
 * {
@@ -57,20 +69,36 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   background:
-    radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.08), transparent 26rem),
-    linear-gradient(135deg, hsl(var(--background)), hsl(var(--background)));
+    linear-gradient(145deg, #f6f0e5 0%, #f8ead1 44%, #e8f4ed 100%),
+    linear-gradient(90deg, color-mix(in oklab, hsl(var(--accent)) 16%, transparent), color-mix(in oklab, hsl(var(--secondary)) 10%, transparent));
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
 }
 
+.dark body {
+  background:
+    linear-gradient(145deg, #080605 0%, #17100d 38%, #071712 68%, #190911 100%),
+    linear-gradient(90deg, color-mix(in oklab, hsl(var(--accent)) 10%, transparent), color-mix(in oklab, hsl(var(--secondary)) 14%, transparent));
+}
+
 ::selection {
-  background: rgba(56, 189, 248, 0.35);
+  background: hsl(var(--primary) / 0.28);
 }
 
 .glass-panel {
-  background: color-mix(in oklab, hsl(var(--card)) 88%, transparent);
-  backdrop-filter: blur(16px);
+  background:
+    linear-gradient(145deg, color-mix(in oklab, hsl(var(--card)) 94%, hsl(var(--accent)) 3%), color-mix(in oklab, hsl(var(--card)) 80%, hsl(var(--primary)) 8%));
+  box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.06);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+.dark .glass-panel {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--accent)) 4%), color-mix(in oklab, hsl(var(--card)) 72%, hsl(var(--secondary)) 7%));
+  box-shadow:
+    inset 0 1px 0 hsl(var(--foreground) / 0.07),
+    0 24px 70px hsl(var(--primary) / 0.07);
 }
 
 .focus-ring {
