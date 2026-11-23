@@ -13,3 +13,6 @@ coverage
 *.tsbuildinfo
 
 next-dev*.log
+
+# Next.js regenerates this on every dev/build (path differs between them), so it must not be tracked
+next-env.d.ts
