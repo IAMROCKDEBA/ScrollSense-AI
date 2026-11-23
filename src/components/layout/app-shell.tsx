@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, m } from "framer-motion";
 import {
   BarChart3,
+  Bot,
   Brain,
   FileText,
   House,
@@ -24,6 +25,8 @@ import { spring } from "@/lib/motion";
 import { LogoMark } from "@/components/ui/logo-mark";
 import { Scrolly } from "@/components/ui/scrolly";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BreathingOverlay } from "@/components/coach/breathing-overlay";
+import { CoachLauncher } from "@/components/coach/coach-launcher";
 
 interface NavItem {
   href: string;
@@ -40,6 +43,7 @@ const groups: { title: string; items: NavItem[] }[] = [
       { href: "/onboarding", label: "Onboarding", icon: UserRound },
       { href: "/mood", label: "Mood", icon: MoonStar },
       { href: "/feed", label: "Feed", icon: PlaySquare },
+      { href: "/coach", label: "Coach", icon: Bot },
       { href: "/tests", label: "Tests", icon: Brain }
     ]
   },
@@ -70,6 +74,7 @@ const tabs: NavItem[] = [
 const sheetItems: NavItem[] = [
   { href: "/onboarding", label: "Onboarding", icon: UserRound },
   { href: "/mood", label: "Mood", icon: MoonStar },
+  { href: "/coach", label: "Coach", icon: Bot },
   { href: "/recommendations", label: "Plan", icon: Sparkles },
   { href: "/report", label: "Report", icon: FileText },
   { href: "/methodology", label: "Method", icon: Info },
@@ -180,6 +185,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <MoreSheet open={sheetOpen} onClose={() => setSheetOpen(false)} pathname={pathname} />
+      <CoachLauncher />
+      <BreathingOverlay />
     </div>
   );
 }

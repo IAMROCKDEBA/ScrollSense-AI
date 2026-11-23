@@ -1,9 +1,10 @@
-const CACHE_NAME = "scrollsense-ai-v13";
+const CACHE_NAME = "scrollsense-ai-v14";
 const APP_SHELL = [
   "/",
   "/onboarding",
   "/mood",
   "/feed",
+  "/coach",
   "/tests",
   "/dashboard",
   "/recommendations",
@@ -15,33 +16,11 @@ const APP_SHELL = [
   "/icons/icon-512.png",
   "/icons/icon.svg"
 ];
-const DEMO_API_RESPONSE = {
-  mode: "demo",
-  videos: [
-    {
-      id: "M7lc1UVf-VE",
-      title: "Demo embed: YouTube player sample",
-      channelTitle: "YouTube Developers",
-      thumbnail: "https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg",
-      embedUrl: "https://www.youtube.com/embed/M7lc1UVf-VE"
-    },
-    {
-      id: "jNQXAC9IVRw",
-      title: "Demo embed: short public archive clip",
-      channelTitle: "Public YouTube Archive",
-      thumbnail: "https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg",
-      embedUrl: "https://www.youtube.com/embed/jNQXAC9IVRw"
-    },
-    {
-      id: "BaW_jenozKc",
-      title: "Demo embed: developer test clip",
-      channelTitle: "YouTube Developers",
-      thumbnail: "https://i.ytimg.com/vi/BaW_jenozKc/hqdefault.jpg",
-      embedUrl: "https://www.youtube.com/embed/BaW_jenozKc"
-    }
-  ],
-  message: "Offline demo mode is active. Reconnect to refresh public videos.",
-  fetchedAt: new Date().toISOString()
+const EMPTY_SHORTS_RESPONSE = {
+  mode: "seed",
+  videos: [],
+  queries: [],
+  message: "You are offline. Reconnect to load Shorts.",
 };
 
 self.addEventListener("install", (event) => {
@@ -69,6 +48,9 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/_next/webpack-hmr")) return;
 
+  // AI endpoints are never cached or answered offline: they are live, personalised and stream.
+  if (url.pathname.startsWith("/api/ai/")) return;
+
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request)
@@ -81,8 +63,8 @@ self.addEventListener("fetch", (event) => {
           caches.match(request).then(
             (cached) =>
               cached ||
-              new Response(JSON.stringify({ ...DEMO_API_RESPONSE, fetchedAt: new Date().toISOString() }), {
-                headers: { "Content-Type": "application/json" }
+              new Response(JSON.stringify({ ...EMPTY_SHORTS_RESPONSE, fetchedAt: new Date().toISOString() }), {
+                headers: { "Content-Type": "application/json" },
               })
           )
         )

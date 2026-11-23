@@ -89,23 +89,23 @@ export default function ReportPage() {
           </ReportSection>
 
           <ReportSection index={3} title="Methodology">
-            The system collects onboarding data, fetches public embeddable short-video approximations through the YouTube Data API or demo fallback, tracks session behavior, records mood changes, runs cognitive tests, and sends normalized values into an explainable scoring engine.
+            The student completes a short profile, then states a goal in the Intent Studio, where an AI planner turns it into a curated feed of verified YouTube Shorts. A full-screen, Reels-style player records real telemetry (hold time per video, quick skips, rewatches, likes, swipe speed). A live Compulsion Index built from six weighted behavioural signals drives the Live Guardian agent, which intervenes with an evidence-citing nudge. After each session a Session Autopsy explains what actually happened. Mood check-ins and three cognitive mini-tests complete the evidence, and everything feeds a transparent weighted scoring model.
           </ReportSection>
 
           <ReportSection index={4} title="System Architecture">
-            The interface collects assessment data, server-side video requests fetch public embedded content when available, this browser stores the student&apos;s saved assessment state, and the scoring engine generates scores and explanations. No authentication or database is required in version 1.
+            A Next.js application keeps all personal data in the student&apos;s own browser (localStorage). Server routes provide (1) a Shorts service that queries the YouTube Data API, verifies each video is a playable Short, caches results and rate-limits callers, and (2) AI routes that call the Claude Messages API. For each AI request the browser sends a compact snapshot of its data; the agent loop runs on the server, read and what-if tools execute against that snapshot, and action tools (open a page, start a breathing break, set a limit) are streamed back to the browser, where the student can undo them. The API key never leaves the server, and every AI feature has a deterministic offline fallback.
           </ReportSection>
 
           <ReportSection index={5} title="AI/ML Scoring Approach">
-            This version uses an explainable scoring model inspired by machine-learning classification. Addiction risk increases when daily usage is high, planned time is exceeded, late-night use is frequent, urge to continue is high, mood worsens, sleep is low, study time is low, or cognitive performance is weak.
+            The system has two layers. The scoring layer is a transparent weighted model over 17 normalised factors: unmeasured factors are excluded and the remaining weights renormalised (nothing is assumed), a confidence value reports how much of the model is backed by real measurements, and every point of the score is traced to a factor. This is a rule-based model, not a trained classifier. The reasoning layer uses Claude: the Sense Coach agent calls tools to read the data and to run what-if simulations through the same scoring model; the Guardian, Intent Planner and Autopsy analyst return schema-validated structured outputs, and a numeric grounding guard rejects any claim whose numbers are not present in the measured data.
           </ReportSection>
 
           <ReportSection index={6} title="Session Data Snapshot">
             {latestSession ? (
               <div>
                 <div className="mb-4">
-                  <Badge variant={latestSession.endedAt ? "success" : "warning"} dot>
-                    {latestSession.endedAt ? "Completed session" : "In-progress session"}
+                  <Badge variant={latestSession.completed === false ? "warning" : "success"} dot>
+                    {latestSession.completed === false ? "Unsaved session" : "Completed session"}
                   </Badge>
                 </div>
                 <div className="grid gap-3 md:grid-cols-4">
@@ -123,7 +123,7 @@ export default function ReportPage() {
           </ReportSection>
 
           <ReportSection index={7} title="Modules">
-            Landing page, onboarding form, mood check-ins, YouTube-powered feed with demo fallback, reaction time test, memory recall test, Stroop test, dashboard, recommendations, methodology page, settings, and exportable report.
+            Landing page, onboarding form, Intent Studio, Reels-style Shorts feed with live telemetry, Live Guardian agent, Session Autopsy, Sense Coach (agentic chatbot with tools), reaction time test, memory recall test, Stroop test, dashboard with score breakdown, recommendations, methodology page, settings with a demo persona, and an exportable report.
           </ReportSection>
 
           <ReportSection index={8} title="Results Interpretation">
@@ -151,11 +151,11 @@ export default function ReportPage() {
           </ReportSection>
 
           <ReportSection index={9} title="Limitations">
-            ScrollSense AI does not directly access private phone usage or third-party app activity. It estimates short-form video addiction risk using self-reported data, in-app behavior, and cognitive test results. It is not a medical diagnosis, scores are estimates rather than clinical assessments, and embedded YouTube videos are not downloaded or redistributed.
+            ScrollSense AI does not access private phone usage or third-party app activity: its behavioural signals come only from the in-app Shorts feed, plus self-report and cognitive tests. It is not a medical diagnosis, and scores are estimates rather than clinical assessments. The scoring weights are hand-set and not yet validated against a clinical instrument. LLM output can be wrong; the grounding guard and offline fallbacks reduce, but cannot eliminate, that risk. Embedded YouTube videos are not downloaded or redistributed.
           </ReportSection>
 
           <ReportSection index={10} title="Future Scope">
-            Replace the rule-based scorer with a trained Logistic Regression, Random Forest, or TensorFlow.js model; add consent-based longitudinal tracking; improve video classification; add optional authentication; and support anonymized research exports.
+            Validate the weights against a clinical short-video-use scale and fit a supervised model on consented longitudinal data; add an Android Usage Access integration for real cross-app measurement; add optional accounts with end-to-end encrypted sync; and support anonymised research exports.
           </ReportSection>
         </CardContent>
       </Card>

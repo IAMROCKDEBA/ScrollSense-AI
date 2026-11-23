@@ -11,4 +11,5 @@ yarn-error.log*
 pnpm-debug.log*
 coverage
 *.tsbuildinfo
-package-lock.json
+
+next-dev*.log

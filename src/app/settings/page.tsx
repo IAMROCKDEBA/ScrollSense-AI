@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CircleCheck, RefreshCw, TriangleAlert, Trash2 } from "lucide-react";
+import { CircleCheck, FlaskConical, RefreshCw, TriangleAlert, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { ThemeSegmented } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
-import type { YouTubeSearchResponse } from "@/types";
+import { useAiStatus } from "@/hooks/use-ai-status";
+import { generatePersona } from "@/data/demo-persona";
+import type { ShortsResponse } from "@/types";
 
 export default function SettingsPage() {
   const hydrated = useAppStore((state) => state.hydrated);
@@ -22,6 +24,9 @@ export default function SettingsPage() {
   const demoMode = useAppStore((state) => state.demoMode);
   const setDemoMode = useAppStore((state) => state.setDemoMode);
   const resetAll = useAppStore((state) => state.resetAll);
+  const loadPersona = useAppStore((state) => state.loadPersona);
+  const demoPersona = useAppStore((state) => state.demoPersona);
+  const ai = useAiStatus();
   const [feedStatus, setFeedStatus] = useState("Checking video feed...");
   const [feedConnected, setFeedConnected] = useState(false);
   const [dataStatus, setDataStatus] = useState("");
@@ -38,13 +43,13 @@ export default function SettingsPage() {
   const checkStatus = useCallback(async () => {
     setFeedStatus("Checking video feed...");
     try {
-      const response = await fetch("/api/youtube/search");
-      const data = (await response.json()) as YouTubeSearchResponse;
+      const response = await fetch("/api/shorts?count=6", { cache: "no-store" });
+      const data = (await response.json()) as ShortsResponse;
       setFeedConnected(data.mode === "youtube");
-      setFeedStatus(data.mode === "youtube" ? "Live public video feed active" : "Demo video feed active");
+      setFeedStatus(data.mode === "youtube" ? "Live YouTube Shorts feed active" : data.message || "Offline Shorts pool active");
     } catch {
       setFeedConnected(false);
-      setFeedStatus("Demo video feed active");
+      setFeedStatus("Offline Shorts pool active");
     }
   }, []);
 
@@ -84,7 +89,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Video feed</CardTitle>
-            <CardDescription>ScrollSense AI uses demo videos whenever the live public feed is unavailable.</CardDescription>
+            <CardDescription>ScrollSense AI streams verified YouTube Shorts and falls back to an offline pool whenever the live feed is unavailable.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -103,8 +108,8 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
               <div className="min-w-0">
-                <div id="demo-mode-label" className="font-medium">Demo mode</div>
-                <div className="text-sm text-muted-foreground">Force the app to use local demo videos.</div>
+                <div id="demo-mode-label" className="font-medium">Offline demo pool</div>
+                <div className="text-sm text-muted-foreground">Force the feed to use the bundled, pre-verified Shorts (no YouTube API calls).</div>
               </div>
               <Switch checked={demoMode} onCheckedChange={setDemoMode} aria-labelledby="demo-mode-label" />
             </div>
@@ -112,6 +117,69 @@ export default function SettingsPage() {
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Check feed again
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>AI agents</CardTitle>
+            <CardDescription>Sense Coach, Live Guardian, Intent Studio and Session Autopsy run on Claude when an Anthropic key is configured on the server.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
+              <div className="min-w-0 text-sm" role="status" aria-live="polite">
+                {ai === null
+                  ? "Checking AI status..."
+                  : ai.live
+                    ? `Claude is connected (${ai.model}).`
+                    : "No Anthropic key found, so scripted offline agents are active."}
+              </div>
+              <Badge variant={ai?.live ? "success" : "warning"} dot>
+                {ai?.live ? "Live AI" : "Offline"}
+              </Badge>
+            </div>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Add <code className="rounded bg-foreground/10 px-1.5 py-0.5 text-xs">ANTHROPIC_API_KEY</code> to the server environment and restart to enable live agents. Your key never reaches the browser.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Demo persona</CardTitle>
+            <CardDescription>
+              Load 14 days of realistic, generated history (12 sessions with full telemetry) so every dashboard, the Coach and the Autopsy have rich data to work with.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
+              <div className="min-w-0 text-sm">
+                {demoPersona ? "Demo persona “Aarav” is loaded. All figures are generated, not real." : "No demo data loaded. Your own data stays untouched until you load it."}
+              </div>
+              <Badge variant={demoPersona ? "warning" : "outline"} dot>
+                {demoPersona ? "Demo data" : "Off"}
+              </Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                disabled={hasSavedAssessmentData && !demoPersona}
+                onClick={() => loadPersona(generatePersona(new Date()))}
+              >
+                <FlaskConical className="h-4 w-4" aria-hidden="true" />
+                {demoPersona ? "Regenerate demo persona" : "Load demo persona"}
+              </Button>
+              {demoPersona ? (
+                <Button variant="ghost" onClick={resetAll}>
+                  Remove demo data
+                </Button>
+              ) : null}
+            </div>
+            {hasSavedAssessmentData && !demoPersona ? (
+              <p className="text-xs leading-5 text-muted-foreground">
+                You have your own saved data, so loading the persona is disabled. Clear your data below first if you want to demo with it.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 

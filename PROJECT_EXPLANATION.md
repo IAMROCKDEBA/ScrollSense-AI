@@ -59,17 +59,20 @@ Explainable Risk Engine
 Dashboard / Recommendations / Report
 
 Server side:
-Browser -> /api/youtube/search -> YouTube Data API v3
-                         |
-                         +--> Demo fallback if key is missing or API fails
+Browser -> /api/shorts      -> YouTube Data API v3 (verified Shorts) -> offline pool fallback
+Browser -> /api/ai/coach    -> Claude Messages API (streaming tool loop)
+Browser -> /api/ai/guardian | /intent | /autopsy -> Claude structured outputs -> offline fallbacks
 ```
+
+See README.md (architecture) and VIVA.md (demo script and viva Q&A) for the current agentic design.
 
 ## Modules
 
 1. Landing page
 2. Onboarding assessment
 3. Mood check-in
-4. YouTube short-video feed
+4. Reels-style YouTube Shorts feed with live telemetry, Live Guardian agent, Session Autopsy
+4b. Sense Coach (agentic chatbot) and Intent Studio
 5. Reaction time test
 6. Memory recall test
 7. Stroop test

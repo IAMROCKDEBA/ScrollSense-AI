@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { ArrowRight, Clock3, PlaySquare, TrendingUp, Video, Timer } from "lucide-react";
+import { ArrowRight, Clock3, PlaySquare, Sparkles, TrendingUp, Video, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,10 @@ import { Scrolly, scrollyForRisk } from "@/components/ui/scrolly";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Stat } from "@/components/ui/stat";
 import { Disclaimer } from "@/components/layout/disclaimer";
-import { buildRiskInput } from "@/lib/risk-input";
+import { ScoreBreakdown } from "@/components/dashboard/score-breakdown";
+import { AttentionTimeline } from "@/components/feed/attention-timeline";
+import { useCoachStore } from "@/store/coach-store";
+import { buildRiskInput, scorableSessions } from "@/lib/risk-input";
 import { predictRisk } from "@/lib/risk-engine";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
@@ -40,6 +44,11 @@ const categoryTone: Record<RiskCategory, "success" | "warning" | "danger"> = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const askCoach = (question: string) => {
+    useCoachStore.getState().setOpen(true);
+    void useCoachStore.getState().send(question, { navigate: (path) => router.push(path) });
+  };
   const profile = useAppStore((state) => state.profile);
   const sessions = useAppStore((state) => state.sessions);
   const moodLogs = useAppStore((state) => state.moodLogs);
@@ -52,32 +61,30 @@ export default function DashboardPage() {
     const input = buildRiskInput(profile, sessions, cognitiveResult, moodLogs);
     return predictRisk(input);
   }, [cognitiveResult, hasAssessmentData, moodLogs, profile, sessions]);
-  const latestSession = sessions.at(-1);
+  const completedSessions = useMemo(() => scorableSessions(sessions), [sessions]);
+  const latestSession = completedSessions.at(-1) ?? sessions.at(-1);
 
   useEffect(() => {
     if (!risk) return;
     saveRiskScore(risk);
   }, [risk, saveRiskScore]);
 
-  const barData = risk ? [
-    { name: "Risk", value: risk.addictionRiskScore },
-    { name: "Focus", value: risk.focusScore },
-    { name: "Memory", value: risk.memoryScore },
-    { name: "Impulse", value: risk.impulseControlScore },
-    { name: "Mood", value: risk.moodDependencyScore },
-    { name: "Well-being", value: risk.digitalWellbeingScore }
-  ] : [];
+  // Higher is better on every axis (risk and mood dependency are inverted) so one chart reads consistently.
+  const radarData = risk
+    ? [
+        risk.focusScore === null ? null : { subject: "Focus", value: risk.focusScore },
+        risk.memoryScore === null ? null : { subject: "Memory", value: risk.memoryScore },
+        { subject: "Impulse control", value: risk.impulseControlScore },
+        { subject: "Mood stability", value: 100 - risk.moodDependencyScore },
+        { subject: "Self-control", value: 100 - risk.addictionRiskScore },
+        { subject: "Well-being", value: risk.digitalWellbeingScore }
+      ].filter((point): point is { subject: string; value: number } => point !== null)
+    : [];
 
-  const radarData = risk ? [
-    { subject: "Focus", value: risk.focusScore },
-    { subject: "Memory", value: risk.memoryScore },
-    { subject: "Impulse", value: risk.impulseControlScore },
-    { subject: "Mood stability", value: 100 - risk.moodDependencyScore },
-    { subject: "Well-being", value: risk.digitalWellbeingScore }
-  ] : [];
+  const barData = radarData.map((point) => ({ name: point.subject, value: point.value }));
 
-  const lineData = sessions.map((session, index) => ({
-    name: session.endedAt ? `S${index + 1}` : "Active",
+  const lineData = completedSessions.map((session, index) => ({
+    name: `S${index + 1}`,
     duration: Number.isFinite(session.durationSeconds) ? Math.round(session.durationSeconds / 60) : 0,
     videos: Number.isFinite(session.videosWatched) ? session.videosWatched : 0,
     urge: Number.isFinite(session.urgeToContinueScore) ? session.urgeToContinueScore : 0
@@ -161,7 +168,20 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid justify-items-center gap-6 sm:grid-cols-3">
                     <Gauge value={risk.addictionRiskScore} label="Risk" tone={toneForRisk(risk.addictionRiskScore)} size={156} />
-                    <Gauge value={risk.focusScore} label="Focus" tone="rose" size={156} />
+                    {risk.focusScore === null ? (
+                      <Link
+                        href="/tests"
+                        className="focus-ring grid h-[156px] w-[156px] place-items-center rounded-full border border-dashed border-foreground/20 p-5 text-center text-xs leading-5 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                      >
+                        Focus needs the
+                        <br />
+                        brain tests
+                        <br />
+                        <span className="text-primary">Take them →</span>
+                      </Link>
+                    ) : (
+                      <Gauge value={risk.focusScore} label="Focus" tone="rose" size={156} />
+                    )}
                     <Gauge value={risk.digitalWellbeingScore} label="Well-being" tone="jade" size={156} />
                   </div>
                 </div>
@@ -174,7 +194,9 @@ export default function DashboardPage() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle>Data completeness</CardTitle>
-              <CardDescription>The model works with missing values, but more inputs make the estimate better.</CardDescription>
+              <CardDescription>
+                Unmeasured inputs are excluded, never assumed. {risk ? `Model confidence: ${risk.confidence}%.` : ""}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between text-sm">
@@ -195,7 +217,11 @@ export default function DashboardPage() {
       {risk ? (
         <section className="grid gap-5 lg:grid-cols-3">
           <Reveal>
-            <ScoreCard title="Memory Score" value={risk.memoryScore} description="From the memory recall test." />
+            <ScoreCard
+              title="Memory Score"
+              value={risk.memoryScore}
+              description={risk.memoryScore === null ? "Not measured yet. Take the memory recall test to see this score." : "From the memory recall test."}
+            />
           </Reveal>
           <Reveal delay={0.08}>
             <ScoreCard title="Impulse Control Score" value={risk.impulseControlScore} description="From planned-vs-actual time, urge, and unintentional opening." />
@@ -212,11 +238,11 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <CardTitle>Latest Video Session</CardTitle>
-                <CardDescription>Started sessions are saved immediately and updated while the timer runs.</CardDescription>
+                <CardDescription>Measured from real swipe, dwell and skip behaviour inside the Reels feed.</CardDescription>
               </div>
               {latestSession ? (
-                <Badge variant={latestSession.endedAt ? "success" : "warning"} dot>
-                  {latestSession.endedAt ? "Completed" : "In progress"}
+                <Badge variant={latestSession.completed === false ? "warning" : "success"} dot>
+                  {latestSession.completed === false ? "Not saved" : "Completed"}
                 </Badge>
               ) : null}
             </div>
@@ -238,11 +264,56 @@ export default function DashboardPage() {
                 No video session data yet. Start a feed session to populate the dashboard and report.
               </div>
             )}
+            {latestSession?.views?.length ? (
+              <div className="mt-6 space-y-4 border-t border-foreground/10 pt-5">
+                <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Attention timeline</div>
+                <AttentionTimeline views={latestSession.views} />
+                {latestSession.autopsy ? (
+                  <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
+                    <div className="font-display text-lg font-medium tracking-tight">{latestSession.autopsy.headline}</div>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{latestSession.autopsy.experimentForTomorrow}</p>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Session Autopsy · {latestSession.autopsy.source === "ai" ? "Claude" : "offline analyst"}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </Reveal>
 
       {risk ? <BehaviorCharts barData={barData} radarData={radarData} /> : null}
+
+      {risk ? (
+        <Reveal>
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle>How your score was calculated</CardTitle>
+                  <CardDescription>Every point of the risk score, traced to a real measurement.</CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => askCoach("Explain my risk score in simple terms and tell me the one change that would help most.")}>
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    Explain with Coach
+                  </Button>
+                  <Badge variant="outline">Confidence {risk.confidence}%</Badge>
+                  {risk.trend ? (
+                    <Badge variant={risk.trend.direction === "improving" ? "success" : risk.trend.direction === "worsening" ? "danger" : "outline"} dot>
+                      {risk.trend.direction === "stable" ? "Stable trend" : `Trend ${risk.trend.direction}`}
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScoreBreakdown breakdown={risk.breakdown} />
+            </CardContent>
+          </Card>
+        </Reveal>
+      ) : null}
 
       {risk ? (
         <section className="grid gap-5 xl:grid-cols-[0.62fr_0.38fr]">
@@ -280,10 +351,24 @@ function ScoreCard({
   inverted = false
 }: {
   title: string;
-  value: number;
+  value: number | null;
   description: string;
   inverted?: boolean;
 }) {
+  if (value === null) {
+    return (
+      <Card className="h-full border-dashed">
+        <CardContent className="p-6">
+          <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">{title}</div>
+          <div className="mt-3 font-display text-3xl font-medium leading-none tracking-tight text-muted-foreground">Not measured</div>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">{description}</p>
+          <Button asChild variant="outline" size="sm" className="mt-4">
+            <Link href="/tests">Take the tests</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
   const good = inverted ? value < 45 : value >= 70;
   return (
     <Card className="h-full">

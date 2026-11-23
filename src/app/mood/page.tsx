@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const reasons: WatchReason[] = ["Entertainment", "Boredom", "Stress relief", "Ha
 const focusOptions: FocusAfter[] = ["More focused", "Same", "Less focused"];
 
 export default function MoodPage() {
+  const router = useRouter();
   const addMoodLog = useAppStore((state) => state.addMoodLog);
   const moodLogs = useAppStore((state) => state.moodLogs);
   const [saveMessage, setSaveMessage] = useState("");
@@ -46,7 +48,7 @@ export default function MoodPage() {
         createdAt: new Date().toISOString()
       });
       window.setTimeout(() => {
-        window.location.href = "/feed";
+        router.push("/feed");
       }, 150);
     } catch {
       setSaveMessage("The check-in could not be saved in this browser. Try refreshing once.");

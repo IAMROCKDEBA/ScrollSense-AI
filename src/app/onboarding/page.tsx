@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Lock, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,6 +81,7 @@ function profileToDraft(profile: UserProfile): ProfileDraft {
 }
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const profile = useAppStore((state) => state.profile);
   const saveProfile = useAppStore((state) => state.saveProfile);
   const [draft, setDraft] = useState<ProfileDraft>(emptyDraft);
@@ -124,7 +126,7 @@ export default function OnboardingPage() {
     }
 
     setIsSaving(true);
-    setSubmitMessage("Saved. Opening mood check-in...");
+    setSubmitMessage("Saved. Opening your intent studio...");
 
     try {
       saveProfile({
@@ -140,7 +142,7 @@ export default function OnboardingPage() {
         unintentionalOpening: draft.unintentionalOpening,
         createdAt: profile?.createdAt ?? new Date().toISOString()
       });
-      window.location.href = "/mood";
+      router.push("/feed");
     } catch {
       setSubmitMessage("Your browser blocked saving. Please allow site storage or use another browser.");
       setIsSaving(false);

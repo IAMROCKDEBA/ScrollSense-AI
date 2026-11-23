@@ -88,11 +88,11 @@ export default function MethodologyPage() {
         <CardContent className="space-y-4 leading-8 text-muted-foreground">
           <p>
             The app first asks the student to self-report typical usage, sleep, study time, and automatic scrolling patterns.
-            Then it observes only what happens inside this web app: public embedded videos watched, skips, duration, and whether the student continues after a reflective warning.
+            Then it observes only what happens inside this web app: how long each Short is watched, how fast the student swipes, quick skips, rewatches, and whether they keep scrolling after the Live Guardian steps in.
           </p>
           <p>
             Mood check-ins capture before-and-after changes. Cognitive tests capture reaction time, memory recall, and color-word inhibition performance.
-            These values are normalized to 0-100 scores and combined using transparent weighted rules for academic interpretation.
+            These values are normalised to 0-100 scores and combined with transparent weighted rules; anything not measured is excluded rather than assumed. A Claude-powered agent layer (Sense Coach, Live Guardian, Intent Planner and Session Autopsy) then explains and acts on those numbers, and it is only allowed to state figures that exist in the measured data.
           </p>
         </CardContent>
       </Card>

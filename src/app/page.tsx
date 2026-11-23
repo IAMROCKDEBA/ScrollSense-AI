@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { m } from "framer-motion";
 import {
@@ -10,7 +11,10 @@ import {
   CircleCheck,
   Clock3,
   LineChart,
+  Bot,
   PlaySquare,
+  ScanSearch,
+  Shield,
   ShieldCheck,
   Sparkles
 } from "lucide-react";
@@ -25,6 +29,7 @@ import { Scrolly, scrollyForRisk } from "@/components/ui/scrolly";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Disclaimer } from "@/components/layout/disclaimer";
 import { HeroVisual } from "@/components/hero/hero-visual";
+import { generatePersona } from "@/data/demo-persona";
 import { buildRiskInput } from "@/lib/risk-input";
 import { predictRisk } from "@/lib/risk-engine";
 import { ease } from "@/lib/motion";
@@ -37,8 +42,8 @@ const steps = [
     icon: Clock3
   },
   {
-    title: "Watch, play, check in",
-    body: "Run a feed session, log your mood, and take three quick cognitive tests.",
+    title: "Scroll with a guardian",
+    body: "State a goal, scroll a Reels-style feed, and let a live AI agent step in when it turns compulsive.",
     icon: PlaySquare
   },
   {
@@ -48,7 +53,7 @@ const steps = [
   }
 ];
 
-const privacyPoints = ["No phone tracking", "No private account access", "No YouTube login", "Local-first storage"];
+const privacyPoints = ["No phone tracking", "No private account access", "No login or database", "Local-first storage"];
 
 export default function LandingPage() {
   const hydrated = useAppStore((state) => state.hydrated);
@@ -56,6 +61,8 @@ export default function LandingPage() {
   const sessions = useAppStore((state) => state.sessions);
   const moodLogs = useAppStore((state) => state.moodLogs);
   const cognitiveResult = useAppStore((state) => state.cognitiveResult);
+  const loadPersona = useAppStore((state) => state.loadPersona);
+  const router = useRouter();
 
   const hasAssessmentData = Boolean(profile || sessions.length > 0 || moodLogs.length > 0 || cognitiveResult);
   const completedDataGroups = [profile, sessions.length > 0, moodLogs.length > 0, cognitiveResult].filter(Boolean).length;
@@ -67,7 +74,9 @@ export default function LandingPage() {
   const scoreRows: { label: string; value: number; tag: string; tone: GaugeTone }[] = risk
     ? [
         { label: "Risk", value: risk.addictionRiskScore, tag: risk.finalRiskCategory, tone: toneForRisk(risk.addictionRiskScore) },
-        { label: "Focus", value: risk.focusScore, tag: scoreTag(risk.focusScore, false), tone: "rose" },
+        risk.focusScore === null
+          ? { label: "Self-control", value: 100 - risk.addictionRiskScore, tag: scoreTag(100 - risk.addictionRiskScore, false), tone: "rose" as GaugeTone }
+          : { label: "Focus", value: risk.focusScore, tag: scoreTag(risk.focusScore, false), tone: "rose" as GaugeTone },
         { label: "Impulse", value: risk.impulseControlScore, tag: scoreTag(risk.impulseControlScore, false), tone: "orchid" },
         { label: "Well-being", value: risk.digitalWellbeingScore, tag: scoreTag(risk.digitalWellbeingScore, false), tone: "jade" }
       ]
@@ -97,8 +106,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="rise max-w-xl text-base leading-8 text-muted-foreground sm:text-lg" style={{ "--i": 2 } as React.CSSProperties}>
-            An explainable AI that estimates short-form video addiction risk from your behavior, mood patterns and
-            cognitive performance, privately, on your own device.
+            An agentic AI that watches how you scroll in real time, explains what it sees with real numbers, and helps
+            you take back control. Your data stays in your browser.
           </p>
 
           <div className="rise flex flex-col gap-3 sm:flex-row sm:items-center" style={{ "--i": 3 } as React.CSSProperties}>
@@ -112,7 +121,16 @@ export default function LandingPage() {
             </Magnetic>
             <Magnetic className="w-full sm:w-auto">
               <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-                <Link href="/feed?demo=true">Try demo mode</Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Never overwrite a student's own data: only load the persona into an empty browser.
+                    if (!hasAssessmentData) loadPersona(generatePersona(new Date()));
+                    router.push("/dashboard");
+                  }}
+                >
+                  {hasAssessmentData ? "Open my dashboard" : "Try the demo persona"}
+                </button>
               </Button>
             </Magnetic>
           </div>
@@ -307,18 +325,18 @@ export default function LandingPage() {
 
           <Reveal className="lg:col-span-2">
             <Card className="h-full p-6 sm:p-8">
-              <FeatureHead icon={PlaySquare} title="YouTube-powered video feed" />
+              <FeatureHead icon={PlaySquare} title="Reels-style Shorts feed" />
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                Scroll a public embeddable feed while the app measures session time, skips and urge to continue.
+                Full-screen vertical Shorts, one per swipe, while real hold time, skips and swipe speed are measured on your device.
               </p>
             </Card>
           </Reveal>
 
           <Reveal delay={0.08} className="lg:col-span-2">
             <Card className="h-full p-6 sm:p-8">
-              <FeatureHead icon={Clock3} title="Mood & impulse tracking" />
+              <FeatureHead icon={Shield} title="Live Guardian agent" />
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                Log how you feel before and after every session and spot mood-driven scrolling.
+                A live compulsion index triggers an AI agent that nudges you with evidence, pauses the feed or retunes it to calmer videos.
               </p>
             </Card>
           </Reveal>
@@ -328,6 +346,30 @@ export default function LandingPage() {
               <FeatureHead icon={BarChart3} title="Well-being dashboard" />
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 Gauges, a radar and session history turn raw numbers into a clear picture.
+              </p>
+            </Card>
+          </Reveal>
+
+          <Reveal className="lg:col-span-3">
+            <Card variant="raised" className="h-full p-6 sm:p-8">
+              <FeatureHead icon={Bot} title="Sense Coach, an agentic chatbot" />
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Claude reads your real sessions, runs what-if simulations through the app&apos;s own scoring model, and takes actions for you, with every tool call shown and undoable.
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-5">
+                <Link href="/coach">
+                  Meet the Coach
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={0.08} className="lg:col-span-3">
+            <Card variant="raised" className="h-full p-6 sm:p-8">
+              <FeatureHead icon={ScanSearch} title="Session Autopsy" />
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                After every session, an attention timeline and a grounded analysis show what actually happened, and every number the AI quotes is checked against your data.
               </p>
             </Card>
           </Reveal>
@@ -369,7 +411,8 @@ export default function LandingPage() {
                   <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                     ScrollSense AI does not track your phone or private apps. It uses self-reported data, in-app
                     video interaction and cognitive tests to estimate digital well-being risk for an academic
-                    mini-project.
+                    mini-project. Your data lives in this browser; when you use an AI feature, a compact snapshot is
+                    sent through the app&apos;s server to Claude to produce the answer, and nothing is stored server-side.
                   </p>
                 </div>
                 <ul className="grid gap-3 sm:grid-cols-2">
@@ -394,7 +437,7 @@ export default function LandingPage() {
             <h2 className="font-display text-3xl font-medium tracking-tight sm:text-5xl">
               Ready to see <em className="text-aurora pr-1 italic">your</em> pattern?
             </h2>
-            <p className="text-muted-foreground">It takes a few minutes, and nothing ever leaves your device.</p>
+            <p className="text-muted-foreground">It takes a few minutes, and your data stays in your browser.</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Magnetic>
                 <Button asChild size="lg">
