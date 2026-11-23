@@ -30,6 +30,8 @@ export function ReelPlayer(props: ReelPlayerProps) {
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  /** True once this player has actually played; only then is it safe to seek without auto-starting it. */
+  const playedRef = useRef(false);
 
   // Always read the freshest props from event handlers without re-creating the player.
   const latest = useRef({ ...props });
@@ -73,6 +75,12 @@ export function ReelPlayer(props: ReelPlayerProps) {
               if (cancelled) return;
               const state = event.data;
               if (state === PlayerState.PLAYING) {
+                // Safety net: a neighbouring (or externally paused) reel must never play, or two sounds overlap.
+                if (!latest.current.active || latest.current.paused) {
+                  event.target.pauseVideo();
+                  return;
+                }
+                playedRef.current = true;
                 setStarted(true);
                 setBuffering(false);
                 latest.current.onPlayingChange(true);
@@ -118,16 +126,21 @@ export function ReelPlayer(props: ReelPlayerProps) {
       player.playVideo();
     } else {
       player.pauseVideo();
-      if (!active) player.seekTo(0, true);
+      // seekTo() on a cued / never-started player begins playback (audibly), so only rewind players that have played.
+      if (!active && playedRef.current) {
+        player.seekTo(0, true);
+        player.pauseVideo();
+      }
     }
   }, [ready, active, paused]);
 
   useEffect(() => {
     const player = playerRef.current;
     if (!ready || !player) return;
-    if (muted) player.mute();
+    // Only the on-screen reel may ever be audible.
+    if (muted || !active) player.mute();
     else player.unMute();
-  }, [ready, muted]);
+  }, [ready, muted, active]);
 
   // Cheap progress polling (writes straight to the DOM in the parent; no React re-render per tick).
   useEffect(() => {
