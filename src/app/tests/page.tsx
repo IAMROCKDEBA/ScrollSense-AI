@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Gauge, Brain, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Stat } from "@/components/ui/stat";
 import { MemoryTest } from "@/components/tests/memory-test";
 import { ReactionTimeTest } from "@/components/tests/reaction-time-test";
 import { StroopTest } from "@/components/tests/stroop-test";
@@ -13,30 +15,46 @@ export default function TestsPage() {
   const result = useAppStore((state) => state.cognitiveResult);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-normal">Cognitive Tests</h1>
-          <p className="mt-2 max-w-3xl text-muted-foreground">
-            These tests estimate reaction speed, memory recall, and impulse-control related attention.
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/dashboard">
-            View dashboard
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </Button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Step 4 · Cognitive tests"
+        title={
+          <>
+            Put your focus to the <em className="text-aurora pr-1 italic">test.</em>
+          </>
+        }
+        description="These tests estimate reaction speed, memory recall, and impulse-control related attention."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/dashboard">
+              View dashboard
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
+        }
+      />
 
-      <Card>
+      <Card variant="raised">
         <CardHeader>
           <CardTitle>Saved cognitive results</CardTitle>
+          <CardDescription>The latest score from each test feeds the risk model.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">
-          <Metric label="Reaction time" value={result?.reactionTimeMs ? `${result.reactionTimeMs}ms` : "Not taken"} />
-          <Metric label="Memory score" value={result?.memoryScore !== undefined ? `${result.memoryScore}/100` : "Not taken"} />
-          <Metric label="Stroop score" value={result?.stroopScore !== undefined ? `${result.stroopScore}/100` : "Not taken"} />
+          <Stat
+            icon={<Zap />}
+            label="Reaction time"
+            value={result?.reactionTimeMs ? `${result.reactionTimeMs}ms` : "Not taken"}
+          />
+          <Stat
+            icon={<Brain />}
+            label="Memory score"
+            value={result?.memoryScore !== undefined ? `${result.memoryScore}/100` : "Not taken"}
+          />
+          <Stat
+            icon={<Gauge />}
+            label="Stroop score"
+            value={result?.stroopScore !== undefined ? `${result.stroopScore}/100` : "Not taken"}
+          />
         </CardContent>
       </Card>
 
@@ -45,15 +63,6 @@ export default function TestsPage() {
         <MemoryTest />
         <StroopTest />
       </div>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-background/55 p-4">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="mt-2 text-xl font-semibold">{value}</div>
     </div>
   );
 }

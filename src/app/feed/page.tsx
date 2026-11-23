@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Brain, Coffee, Pause, Play, RotateCcw, StepForward, Volume2, VolumeX, XCircle } from "lucide-react";
+import { Pause, Play, RotateCcw, StepForward, Volume2, VolumeX, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { YouTubePlayer } from "@/components/feed/youtube-player";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
+import { Scrolly } from "@/components/ui/scrolly";
 import { Select } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Stat } from "@/components/ui/stat";
 import { createId, formatDuration } from "@/lib/utils";
 import { youtubeQueries } from "@/lib/youtube";
 import { useAppStore } from "@/store/app-store";
@@ -391,6 +395,7 @@ export default function FeedPage() {
     });
     setSessionActive(false);
     setVideoPlaying(false);
+    setPauseSeconds(0);
     setPostSessionOpen(true);
     setExceededPlanned(durationSeconds / 60 > normalizedPlannedMinutes());
   }
@@ -437,31 +442,37 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Short-Video Session</h1>
-          <p className="mt-2 max-w-3xl text-muted-foreground">
-            Watch a public embeddable feed, then compare planned time, actual behavior, mood shift, and urge to continue.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant={apiMode === "youtube" ? "success" : "warning"}>
-            {apiMode === "youtube" ? "Live feed active" : "Demo feed active"}
-          </Badge>
-          {profile ? <Badge variant="outline">Profile: {profile.name}</Badge> : <Badge variant="outline">No profile yet</Badge>}
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Step 3 · Video session"
+        title={
+          <>
+            Scroll with <em className="text-aurora pr-1 italic">awareness.</em>
+          </>
+        }
+        description="Watch a public embeddable feed, then compare planned time, actual behavior, mood shift, and urge to continue."
+        actions={
+          <>
+            <Badge variant={apiMode === "youtube" ? "success" : "warning"} dot>
+              {apiMode === "youtube" ? "Live feed active" : "Demo feed active"}
+            </Badge>
+            {profile ? <Badge variant="outline">Profile: {profile.name}</Badge> : <Badge variant="outline">No profile yet</Badge>}
+          </>
+        }
+      />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <Card className="overflow-hidden">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <Card variant="raised" className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="grid min-h-[calc(100svh-11rem)] lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="grid min-h-[calc(100svh-11rem)] lg:grid-cols-[minmax(0,1fr)_19rem]">
               <div className="relative grid min-h-[64svh] place-items-center overflow-hidden overscroll-contain bg-black sm:min-h-[72svh]">
                 {loading ? (
-                  <div className="text-sm text-white/70">Loading feed...</div>
+                  <div className="flex flex-col items-center gap-4 text-sm text-white/70" role="status">
+                    <Scrolly mood="idle" size={96} />
+                    Loading feed...
+                  </div>
                 ) : error ? (
-                  <div className="max-w-md px-6 text-center text-sm text-red-200">{error}</div>
+                  <div className="max-w-md px-6 text-center text-sm text-[hsl(350_100%_84%)]" role="alert">{error}</div>
                 ) : currentVideo ? (
                   <>
                     {sessionActive ? (
@@ -488,19 +499,22 @@ export default function FeedPage() {
                     ) : (
                       <div className="relative h-full min-h-[64svh] w-full overflow-hidden sm:min-h-[68svh]">
                         <div
-                          className="h-full min-h-[64svh] w-full bg-cover bg-center opacity-50 sm:min-h-[68svh]"
+                          className="h-full min-h-[64svh] w-full scale-105 bg-cover bg-center opacity-55 sm:min-h-[68svh]"
                           style={{ backgroundImage: `url("${currentVideo.thumbnail}")` }}
                           aria-hidden="true"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/20" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(287_39%_5%)] via-[hsl(287_39%_5%/0.55)] to-[hsl(287_39%_5%/0.15)]" />
                         <div className="absolute inset-0 grid place-items-center px-6 text-center text-white">
                           <div className="max-w-lg">
-                            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full border border-white/25 bg-white/10">
-                              <Play className="h-7 w-7" aria-hidden="true" />
+                            <div className="relative mx-auto mb-6 grid h-20 w-20 place-items-center">
+                              <span className="absolute inset-0 animate-pulse-ring rounded-full border border-[var(--metal-1)]" aria-hidden="true" />
+                              <span className="grid h-20 w-20 place-items-center rounded-full border border-white/25 bg-white/10 backdrop-blur-md">
+                                <Play className="h-8 w-8 translate-x-0.5" aria-hidden="true" />
+                              </span>
                             </div>
-                            <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Ready when you are</p>
-                            <h2 className="mt-3 text-2xl font-semibold">{currentVideo.title}</h2>
-                            <p className="mt-2 text-sm text-white/72">
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--metal-1)]">Ready when you are</p>
+                            <h2 className="mt-3 font-display text-3xl font-medium tracking-tight">{currentVideo.title}</h2>
+                            <p className="mt-3 text-sm text-white/75">
                               Start the session, then scroll down or swipe up for the next video.
                             </p>
                           </div>
@@ -508,25 +522,37 @@ export default function FeedPage() {
                       </div>
                     )}
                     {pauseSeconds > 0 ? (
-                      <div className="absolute inset-0 z-30 grid place-items-center bg-black/80 px-6 text-center text-white">
-                        <div>
-                          <Coffee className="mx-auto mb-4 h-10 w-10 text-sky-300" aria-hidden="true" />
-                          <div className="text-4xl font-semibold">{pauseSeconds}</div>
-                          <p className="mt-2 text-sm text-white/70">Mindful pause. Breathe, blink, and decide intentionally.</p>
+                      <div
+                        role="dialog"
+                        aria-label="Mindful pause"
+                        className="absolute inset-0 z-30 grid place-items-center bg-[hsl(287_39%_4%/0.9)] px-6 text-center text-white"
+                      >
+                        <div className="flex flex-col items-center">
+                          <Scrolly mood="breathing" size={150} />
+                          <div className="mt-2 font-display text-6xl font-medium tabular-nums">{pauseSeconds}</div>
+                          <p className="mt-3 max-w-xs text-sm text-white/75">Mindful pause. Breathe, blink, and decide intentionally.</p>
                         </div>
                       </div>
                     ) : null}
                     {showWarning ? (
-                      <div className="absolute inset-0 z-30 grid place-items-center bg-black/80 px-4">
-                        <div className="max-w-md rounded-lg border border-white/15 bg-slate-950/92 p-5 text-center text-white">
-                          <Brain className="mx-auto mb-3 h-9 w-9 text-sky-300" aria-hidden="true" />
-                          <h2 className="text-xl font-semibold">Pause for a moment.</h2>
-                          <p className="mt-2 text-sm text-white/72">
+                      <div className="absolute inset-0 z-30 grid place-items-center bg-[hsl(287_39%_4%/0.88)] px-4">
+                        <div
+                          role="alertdialog"
+                          aria-labelledby="feed-warning-title"
+                          aria-describedby="feed-warning-body"
+                          className="surface surface--raised max-w-md p-6 text-center text-foreground"
+                        >
+                          <Scrolly mood="concerned" size={96} className="mx-auto" />
+                          <h2 id="feed-warning-title" className="mt-3 font-display text-2xl font-medium tracking-tight">
+                            Pause for a moment.
+                          </h2>
+                          <p id="feed-warning-body" className="mt-2 text-sm leading-6 text-muted-foreground">
                             Did you open this intentionally, or are you scrolling automatically?
                           </p>
-                          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                          <div className="mt-6 grid gap-2 sm:grid-cols-3">
                             <Button
                               size="sm"
+                              autoFocus
                               onClick={() => continueIntentionally(true)}
                             >
                               Continue intentionally
@@ -547,16 +573,18 @@ export default function FeedPage() {
                 )}
               </div>
 
-              <div className="border-t bg-card p-4 lg:border-l lg:border-t-0">
-                <div className="space-y-4">
+              <div className="border-t border-foreground/10 bg-card/60 p-5 lg:border-l lg:border-t-0">
+                <div className="space-y-5">
                   <div>
-                    <div className="text-sm text-muted-foreground">Now showing</div>
-                    <div className="mt-1 line-clamp-3 font-medium">{currentVideo?.title ?? "Waiting for video"}</div>
+                    <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Now showing</div>
+                    <div className="mt-1.5 line-clamp-3 font-display text-lg font-medium leading-snug tracking-tight">
+                      {currentVideo?.title ?? "Waiting for video"}
+                    </div>
                     <div className="mt-1 text-sm text-muted-foreground">{currentVideo?.channelTitle}</div>
                   </div>
 
                   {!sessionActive && !postSessionOpen ? (
-                    <div className="grid gap-3">
+                    <div className="grid gap-4">
                       <Field label="Planned session minutes">
                         <Input
                           type="number"
@@ -574,7 +602,7 @@ export default function FeedPage() {
                           {reasons.map((item) => <option key={item}>{item}</option>)}
                         </Select>
                       </Field>
-                      <Button onClick={startSession} disabled={loading || videos.length === 0}>
+                      <Button size="lg" onClick={startSession} disabled={loading || videos.length === 0}>
                         <Play className="h-4 w-4" aria-hidden="true" />
                         Start session
                       </Button>
@@ -583,26 +611,41 @@ export default function FeedPage() {
 
                   {sessionActive ? (
                     <div className="grid gap-3">
-                      <Metric label="Planned time" value={`${formatMinutes(plannedSessionMinutes)} min`} />
-                      <Metric label="Duration" value={formatDuration(durationSeconds)} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Metric label="Planned" value={`${formatMinutes(plannedSessionMinutes)} min`} />
+                        <Metric label="Duration" value={formatDuration(durationSeconds)} />
+                      </div>
                       <Metric
                         label="Time remaining"
                         value={durationSeconds >= plannedSessionSeconds ? "Plan exceeded" : formatDuration(remainingSeconds)}
+                        tone={durationSeconds >= plannedSessionSeconds ? "warning" : "default"}
                       />
-                      <div className="rounded-lg border bg-background/55 p-3">
+                      <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-3">
                         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                           <span>Planned progress</span>
-                          <span>{plannedProgress}%</span>
+                          <span className="tabular-nums">{plannedProgress}%</span>
                         </div>
-                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${plannedProgress}%` }} />
+                        <div
+                          className="mt-2 h-2 overflow-hidden rounded-full bg-foreground/10"
+                          role="progressbar"
+                          aria-label="Planned progress"
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={plannedProgress}
+                        >
+                          <div
+                            className="h-full w-full origin-left rounded-full bg-metal transition-transform duration-1000 ease-linear"
+                            style={{ transform: `scaleX(${Math.min(100, Math.max(0, plannedProgress)) / 100})` }}
+                          />
                         </div>
                       </div>
-                      <Metric label="Videos watched" value={String(videosWatched)} />
-                      <Metric label="Queued videos" value={String(Math.max(0, videos.length - videoIndex - 1))} />
-                      <Metric label="Skip count" value={String(skipCount)} />
-                      <Metric label="Average per video" value={`${averageTimePerVideo}s`} />
-                      <div className="rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-sm leading-6 text-sky-100">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Metric label="Watched" value={String(videosWatched)} />
+                        <Metric label="Queued" value={String(Math.max(0, videos.length - videoIndex - 1))} />
+                        <Metric label="Skips" value={String(skipCount)} />
+                        <Metric label="Avg / video" value={`${averageTimePerVideo}s`} />
+                      </div>
+                      <div className="rounded-2xl border border-primary/25 bg-primary/[0.08] p-3 text-sm leading-6 text-foreground/90">
                         {youtubeControlsEnabled
                           ? "YouTube controls are active. Turn them off to restore scroll/swipe over the video."
                           : "Scroll down or swipe up over the video to advance. Turn on YouTube controls only when you need the iframe buttons."}
@@ -655,14 +698,13 @@ export default function FeedPage() {
                   ) : null}
 
                   {postSessionOpen ? (
-                    <div className="grid gap-3">
+                    <div className="grid gap-4">
                       <Metric label="Final duration" value={formatDuration(durationSeconds)} />
                       <Field label="Mood after">
                         <MoodSelect value={moodAfter} onChange={setMoodAfter} />
                       </Field>
-                      <Field label="Do you feel like continuing?">
-                        <input className="w-full accent-sky-400" type="range" min={1} max={10} value={urge} onChange={(event) => setUrge(Number(event.target.value))} />
-                        <div className="text-sm text-muted-foreground">{urge}/10</div>
+                      <Field label="Do you feel like continuing?" hint={`${urge}/10`}>
+                        <Slider min={1} max={10} value={urge} onChange={(event) => setUrge(Number(event.target.value))} />
                       </Field>
                       <Field label="Did you exceed your planned time?">
                         <Select value={exceededPlanned ? "Yes" : "No"} onChange={(event) => setExceededPlanned(event.target.value === "Yes")}>
@@ -697,7 +739,7 @@ export default function FeedPage() {
                 {lastFeedRefresh ? ` Last refresh: ${new Date(lastFeedRefresh).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` : ""}
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
+            <CardContent className="text-sm leading-7 text-muted-foreground">
               New unique videos are added automatically every 2 minutes during an active session. The feed uses public embedded videos when available and falls back to demo videos when the live source cannot be reached.
             </CardContent>
           </Card>
@@ -719,30 +761,20 @@ export default function FeedPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function MoodSelect({
+  value,
+  onChange,
+  ...props
+}: { value: Mood; onChange: (value: Mood) => void } & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "value" | "onChange">) {
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-function MoodSelect({ value, onChange }: { value: Mood; onChange: (value: Mood) => void }) {
-  return (
-    <Select value={value} onChange={(event) => onChange(event.target.value as Mood)}>
+    <Select {...props} value={value} onChange={(event) => onChange(event.target.value as Mood)}>
       {moods.map((mood) => <option key={mood}>{mood}</option>)}
     </Select>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-background/55 p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-xl font-semibold">{value}</div>
-    </div>
-  );
+function Metric({ label, value, tone }: { label: string; value: string; tone?: "default" | "warning" }) {
+  return <Stat compact label={label} value={value} tone={tone} />;
 }
 
 function formatMinutes(minutes: number) {

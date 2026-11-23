@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
+  ArrowRight,
   BarChart3,
   Brain,
-  CheckCircle2,
+  CircleCheck,
   Clock3,
   LineChart,
   PlaySquare,
@@ -15,20 +16,39 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { Gauge, toneForRisk } from "@/components/ui/gauge";
+import type { GaugeTone } from "@/components/ui/gauge";
+import { Magnetic } from "@/components/ui/magnetic";
+import { Reveal } from "@/components/ui/reveal";
+import { Scrolly, scrollyForRisk } from "@/components/ui/scrolly";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Disclaimer } from "@/components/layout/disclaimer";
+import { HeroVisual } from "@/components/hero/hero-visual";
 import { buildRiskInput } from "@/lib/risk-input";
 import { predictRisk } from "@/lib/risk-engine";
+import { ease } from "@/lib/motion";
 import { useAppStore } from "@/store/app-store";
 
-const features = [
-  { title: "YouTube-powered short-video feed", icon: PlaySquare },
-  { title: "Addiction risk prediction", icon: LineChart },
-  { title: "Cognitive function tests", icon: Brain },
-  { title: "Mood and impulse tracking", icon: Clock3 },
-  { title: "Digital well-being dashboard", icon: BarChart3 },
-  { title: "Personalized recommendations", icon: Sparkles }
+const steps = [
+  {
+    title: "Share your habits",
+    body: "A short onboarding captures how, when and why you watch short-form video.",
+    icon: Clock3
+  },
+  {
+    title: "Watch, play, check in",
+    body: "Run a feed session, log your mood, and take three quick cognitive tests.",
+    icon: PlaySquare
+  },
+  {
+    title: "See your pattern",
+    body: "An explainable score, a personal plan and a printable report. All on your device.",
+    icon: BarChart3
+  }
 ];
+
+const privacyPoints = ["No phone tracking", "No private account access", "No YouTube login", "Local-first storage"];
 
 export default function LandingPage() {
   const hydrated = useAppStore((state) => state.hydrated);
@@ -44,154 +64,401 @@ export default function LandingPage() {
     return predictRisk(buildRiskInput(profile, sessions, cognitiveResult, moodLogs));
   }, [cognitiveResult, hasAssessmentData, moodLogs, profile, sessions]);
 
-  const scoreRows = risk
+  const scoreRows: { label: string; value: number; tag: string; tone: GaugeTone }[] = risk
     ? [
-        { label: "Risk", value: risk.addictionRiskScore, tag: risk.finalRiskCategory },
-        { label: "Focus", value: risk.focusScore, tag: scoreTag(risk.focusScore, false) },
-        { label: "Impulse", value: risk.impulseControlScore, tag: scoreTag(risk.impulseControlScore, false) },
-        { label: "Well-being", value: risk.digitalWellbeingScore, tag: scoreTag(risk.digitalWellbeingScore, false) }
+        { label: "Risk", value: risk.addictionRiskScore, tag: risk.finalRiskCategory, tone: toneForRisk(risk.addictionRiskScore) },
+        { label: "Focus", value: risk.focusScore, tag: scoreTag(risk.focusScore, false), tone: "rose" },
+        { label: "Impulse", value: risk.impulseControlScore, tag: scoreTag(risk.impulseControlScore, false), tone: "orchid" },
+        { label: "Well-being", value: risk.digitalWellbeingScore, tag: scoreTag(risk.digitalWellbeingScore, false), tone: "jade" }
       ]
     : [];
 
   return (
-    <div className="space-y-10">
-      <section className="grid min-h-[78vh] min-w-0 items-center gap-8 overflow-hidden lg:grid-cols-[1.05fr_0.95fr]">
-        <motion.div
-          initial={false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55 }}
-          className="min-w-0 max-w-[calc(100vw-2rem)] space-y-6 lg:max-w-none"
-        >
-          <Badge variant="outline" className="w-full max-w-[calc(100vw-2rem)] whitespace-normal break-words border-primary/35 bg-primary/10 text-left leading-5 text-primary [overflow-wrap:anywhere]">
-            <span className="sm:hidden">AI-powered short-video well-being analyzer</span>
-            <span className="hidden sm:inline">
-              AI-Powered Short-Form Video Addiction Risk Predictor and Digital Well-being Analyzer
+    <div className="space-y-24 sm:space-y-32">
+      {/* ------------------------------------------------------------ Hero */}
+      <section className="grid min-w-0 items-center gap-10 lg:min-h-[calc(100svh-7rem)] lg:grid-cols-[1.05fr_0.95fr] lg:gap-6">
+        <div className="min-w-0 space-y-8">
+          <div className="rise inline-flex max-w-full items-center gap-2.5 rounded-full border border-foreground/15 bg-card/50 px-4 py-2 text-xs font-medium tracking-wide" style={{ "--i": 0 } as React.CSSProperties}>
+            <span className="relative flex h-2 w-2" aria-hidden="true">
+              <span className="absolute inset-0 animate-pulse-ring rounded-full bg-primary" />
+              <span className="relative h-2 w-2 rounded-full bg-primary" />
             </span>
-          </Badge>
-          <div className="space-y-4">
-            <h1 className="max-w-[calc(100vw-2rem)] break-words text-[1.65rem] font-semibold leading-tight tracking-normal sm:max-w-4xl sm:text-5xl lg:text-6xl">
-              <span className="block">Understand your</span>
-              <span className="block">short-form video habits</span>
-              <span className="block">before they control you.</span>
-            </h1>
-            <p className="max-w-[calc(100vw-2rem)] text-sm leading-7 text-muted-foreground sm:max-w-2xl sm:text-lg">
-              <span className="block sm:inline">An AI-powered digital well-being analyzer</span>{" "}
-              <span className="block sm:inline">that estimates addiction risk using</span>{" "}
-              <span className="block sm:inline">short-video behavior, mood patterns, and cognitive performance.</span>
-            </p>
+            <span className="truncate">AI short-form video well-being analyzer</span>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/onboarding">Start Assessment</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/feed?demo=true">Try Demo Mode</Link>
-            </Button>
-          </div>
-          <Disclaimer />
-        </motion.div>
 
-        <motion.div
-          initial={false}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.12, duration: 0.6 }}
-          className="relative min-w-0"
-        >
-          <div className="rounded-lg border bg-card/80 p-4 shadow-glow">
-            <div className="mb-4 flex items-center justify-between">
+          <h1
+            className="rise font-display text-[2.7rem] font-medium leading-[1.02] tracking-tight sm:text-6xl xl:text-[5.4rem]"
+            style={{ "--i": 1 } as React.CSSProperties}
+          >
+            Understand your scroll
+            <span className="block">
+              before it <em className="text-aurora pr-1 italic">controls you.</em>
+            </span>
+          </h1>
+
+          <p className="rise max-w-xl text-base leading-8 text-muted-foreground sm:text-lg" style={{ "--i": 2 } as React.CSSProperties}>
+            An explainable AI that estimates short-form video addiction risk from your behavior, mood patterns and
+            cognitive performance, privately, on your own device.
+          </p>
+
+          <div className="rise flex flex-col gap-3 sm:flex-row sm:items-center" style={{ "--i": 3 } as React.CSSProperties}>
+            <Magnetic className="w-full sm:w-auto">
+              <Button asChild size="lg" className="w-full sm:w-auto">
+                <Link href="/onboarding">
+                  Start assessment
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </Magnetic>
+            <Magnetic className="w-full sm:w-auto">
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                <Link href="/feed?demo=true">Try demo mode</Link>
+              </Button>
+            </Magnetic>
+          </div>
+
+          <ul className="rise flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground" style={{ "--i": 4 } as React.CSSProperties}>
+            {["Local-first", "No login", "Explainable score"].map((item) => (
+              <li key={item} className="flex items-center gap-2">
+                <CircleCheck className="h-4 w-4 text-success-foreground" aria-hidden="true" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rise min-w-0" style={{ "--i": 2 } as React.CSSProperties}>
+          <HeroVisual />
+        </div>
+      </section>
+
+      <Reveal>
+        <Disclaimer />
+      </Reveal>
+
+      {/* ------------------------------------------------- Live snapshot */}
+      <section aria-labelledby="snapshot-title" className="space-y-8">
+        <Reveal className="max-w-2xl space-y-3">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-primary">Your snapshot</p>
+          <h2 id="snapshot-title" className="font-display text-3xl font-medium tracking-tight sm:text-5xl">
+            Your data, made legible.
+          </h2>
+        </Reveal>
+
+        <Reveal>
+          <Card variant="raised" className="p-6 sm:p-10">
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-sm text-muted-foreground">Current assessment</div>
-                <div className="text-xl font-semibold">Risk summary</div>
+                <div className="font-display text-2xl font-medium tracking-tight">Risk summary</div>
               </div>
-              <Badge variant={risk ? "success" : "outline"}>
+              <Badge variant={risk ? "success" : "outline"} dot>
                 {risk ? (completedDataGroups >= 4 ? "Complete data" : "Partial data") : hydrated ? "No data yet" : "Loading"}
               </Badge>
             </div>
+
             {risk ? (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4">
                 {scoreRows.map((item) => (
-                  <div key={item.label} className="rounded-lg border bg-background/60 p-4">
-                    <div className="text-sm text-muted-foreground">{item.label}</div>
-                    <div className="mt-2 flex items-end justify-between">
-                      <span className="text-3xl font-semibold">{item.value}</span>
-                      <span className="text-xs text-muted-foreground">{item.tag}</span>
-                    </div>
-                    <div className="mt-3 h-2 rounded-full bg-muted">
-                      <div className="h-2 rounded-full bg-primary" style={{ width: `${item.value}%` }} />
-                    </div>
+                  <div key={item.label} className="flex flex-col items-center gap-4 text-center">
+                    <Gauge value={item.value} label={item.label} tone={item.tone} size={152} />
+                    <Badge variant="outline">{item.tag}</Badge>
                   </div>
                 ))}
               </div>
             ) : !hydrated ? (
-              <div className="rounded-lg border bg-background/60 p-4">
-                <div className="h-5 w-40 animate-pulse rounded bg-muted" />
-                <div className="mt-3 h-3 w-full animate-pulse rounded bg-muted" />
-                <div className="mt-2 h-3 w-2/3 animate-pulse rounded bg-muted" />
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed bg-background/60 p-4">
-                <div className="text-lg font-semibold">No result generated yet</div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Complete onboarding, start a feed session, and save mood or cognitive data to generate a real risk summary.
-                </p>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <Button asChild>
-                    <Link href="/onboarding">Start assessment</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/dashboard">Open dashboard</Link>
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div className="mt-4 rounded-lg border bg-background/60 p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-                Privacy-first academic design
-              </div>
-              <div className="grid gap-2 text-sm text-muted-foreground">
-                {["No phone tracking", "No private account access", "No YouTube login", "Local-first storage"].map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-                    {item}
+              <div className="grid grid-cols-2 gap-6 lg:grid-cols-4" aria-busy="true">
+                {[0, 1, 2, 3].map((n) => (
+                  <div key={n} className="flex flex-col items-center gap-4">
+                    <Skeleton className="h-[9.25rem] w-[9.25rem] !rounded-full" />
+                    <Skeleton className="h-6 w-20 !rounded-full" />
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="grid items-center gap-8 md:grid-cols-[auto_1fr]">
+                <div className="mx-auto">
+                  <Scrolly mood="sleepy" size={170} label="Scrolly is waiting for your data" />
+                </div>
+                <div className="space-y-5 text-center md:text-left">
+                  <div>
+                    <div className="font-display text-2xl font-medium tracking-tight">No result generated yet</div>
+                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
+                      Complete onboarding, start a feed session, and save mood or cognitive data to generate a real
+                      risk summary.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row md:justify-start">
+                    <Button asChild>
+                      <Link href="/onboarding">Start assessment</Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                      <Link href="/dashboard">Open dashboard</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {risk ? (
+              <div className="mt-10 flex items-center justify-center gap-3 border-t border-foreground/10 pt-6 text-sm text-muted-foreground">
+                <Scrolly mood={scrollyForRisk(risk.finalRiskCategory)} size={44} />
+                <span>
+                  Overall category: <strong className="font-semibold text-foreground">{risk.finalRiskCategory}</strong>.{" "}
+                  <Link href="/dashboard" className="focus-ring rounded font-medium text-primary underline-offset-4 hover:underline">
+                    See the full breakdown
+                  </Link>
+                </span>
+              </div>
+            ) : null}
+          </Card>
+        </Reveal>
+      </section>
+
+      {/* ---------------------------------------------------- How it works */}
+      <section aria-labelledby="journey-title" className="space-y-10">
+        <Reveal className="max-w-2xl space-y-3">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-primary">The journey</p>
+          <h2 id="journey-title" className="font-display text-3xl font-medium tracking-tight sm:text-5xl">
+            Three steps from habit to clarity.
+          </h2>
+        </Reveal>
+
+        <ol className="relative grid gap-5 md:grid-cols-3">
+          <div
+            className="pointer-events-none absolute left-[16%] right-[16%] top-[3.25rem] hidden h-px border-t border-dashed border-primary/35 md:block"
+            aria-hidden="true"
+          />
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <li key={step.title}>
+                <Reveal delay={index * 0.1} className="h-full">
+                  <Card className="h-full p-6">
+                    <div className="mb-6 flex items-center justify-between">
+                      <div className="grid h-14 w-14 place-items-center rounded-2xl border border-primary/25 bg-primary/[0.1] text-primary">
+                        <Icon className="h-6 w-6" aria-hidden="true" />
+                      </div>
+                      <span className="font-display text-5xl font-medium text-foreground/[0.12]" aria-hidden="true">
+                        0{index + 1}
+                      </span>
+                    </div>
+                    <h3 className="font-display text-xl font-medium tracking-tight">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-muted-foreground">{step.body}</p>
+                  </Card>
+                </Reveal>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      {/* ------------------------------------------------------------ Bento */}
+      <section aria-labelledby="features-title" className="space-y-10">
+        <Reveal className="max-w-2xl space-y-3">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-primary">Inside the app</p>
+          <h2 id="features-title" className="font-display text-3xl font-medium tracking-tight sm:text-5xl">
+            Everything you need to see clearly.
+          </h2>
+        </Reveal>
+
+        <div className="grid gap-4 lg:grid-cols-6">
+          <Reveal className="lg:col-span-4">
+            <Card className="h-full p-6 sm:p-8">
+              <FeatureHead icon={LineChart} title="Addiction risk prediction" />
+              <p className="mt-3 max-w-md text-sm leading-7 text-muted-foreground">
+                An explainable scoring model blends self-report, session behavior, mood shifts and cognition into one
+                transparent risk score you can actually interrogate.
+              </p>
+              <div className="mt-8 space-y-3" aria-hidden="true">
+                {[
+                  { label: "Focus", width: 72 },
+                  { label: "Impulse control", width: 54 },
+                  { label: "Memory", width: 83 },
+                  { label: "Mood stability", width: 61 }
+                ].map((bar, i) => (
+                  <div key={bar.label} className="flex items-center gap-4">
+                    <span className="w-28 shrink-0 text-xs text-muted-foreground">{bar.label}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-foreground/10">
+                      <m.div
+                        className="h-full origin-left rounded-full bg-metal"
+                        style={{ width: `${bar.width}%` }}
+                        initial={{ scaleX: 0 }}
+                        whileInView={{ scaleX: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, ease: ease.out, delay: 0.15 + i * 0.1 }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <p className="pt-1 text-[0.6875rem] uppercase tracking-[0.16em] text-muted-foreground/80">Illustration</p>
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={0.08} className="lg:col-span-2">
+            <Card className="h-full p-6 sm:p-8">
+              <FeatureHead icon={Brain} title="Cognitive function tests" />
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Reaction time, memory recall and a Stroop challenge: three quick tasks that capture your focus.
+              </p>
+            </Card>
+          </Reveal>
+
+          <Reveal className="lg:col-span-2">
+            <Card className="h-full p-6 sm:p-8">
+              <FeatureHead icon={PlaySquare} title="YouTube-powered video feed" />
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Scroll a public embeddable feed while the app measures session time, skips and urge to continue.
+              </p>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={0.08} className="lg:col-span-2">
+            <Card className="h-full p-6 sm:p-8">
+              <FeatureHead icon={Clock3} title="Mood & impulse tracking" />
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Log how you feel before and after every session and spot mood-driven scrolling.
+              </p>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={0.16} className="lg:col-span-2">
+            <Card className="h-full p-6 sm:p-8">
+              <FeatureHead icon={BarChart3} title="Well-being dashboard" />
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Gauges, a radar and session history turn raw numbers into a clear picture.
+              </p>
+            </Card>
+          </Reveal>
+
+          <Reveal className="lg:col-span-6">
+            <Card variant="raised" className="p-6 sm:p-8">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="max-w-2xl">
+                  <FeatureHead icon={Sparkles} title="Personalized recommendations" />
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                    A plan built from your own risk factors: immediate steps, a 7-day reset and study routines that
+                    fit how you actually scroll.
+                  </p>
+                </div>
+                <Button asChild variant="outline" className="self-start md:self-center">
+                  <Link href="/recommendations">
+                    See the plan
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------- Privacy */}
+      <section aria-labelledby="privacy-title">
+        <Reveal>
+          <Card variant="raised" className="overflow-hidden p-6 sm:p-12">
+            <div className="grid items-center gap-10 lg:grid-cols-[auto_1fr]">
+              <PrivacyShield />
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Badge variant="secondary">Important boundary</Badge>
+                  <h2 id="privacy-title" className="font-display text-3xl font-medium tracking-tight sm:text-4xl">
+                    Private by design. Honest about limits.
+                  </h2>
+                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+                    ScrollSense AI does not track your phone or private apps. It uses self-reported data, in-app
+                    video interaction and cognitive tests to estimate digital well-being risk for an academic
+                    mini-project.
+                  </p>
+                </div>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {privacyPoints.map((item) => (
+                    <li key={item} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.035] px-4 py-3 text-sm">
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-success-foreground" aria-hidden="true" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </Card>
+        </Reveal>
+      </section>
+
+      {/* --------------------------------------------------------- Final CTA */}
+      <Reveal>
+        <section className="relative overflow-hidden rounded-[2rem] border border-foreground/10 bg-gradient-to-br from-primary/[0.14] via-secondary/[0.1] to-accent/[0.1] px-6 py-14 text-center sm:px-12 sm:py-20">
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-6">
+            <Scrolly mood="happy" size={110} />
+            <h2 className="font-display text-3xl font-medium tracking-tight sm:text-5xl">
+              Ready to see <em className="text-aurora pr-1 italic">your</em> pattern?
+            </h2>
+            <p className="text-muted-foreground">It takes a few minutes, and nothing ever leaves your device.</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Magnetic>
+                <Button asChild size="lg">
+                  <Link href="/onboarding">
+                    Start assessment
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </Magnetic>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/methodology">How it works</Link>
+              </Button>
             </div>
           </div>
-        </motion.div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map((feature) => {
-          const Icon = feature.icon;
-          return (
-            <Card key={feature.title}>
-              <CardHeader>
-                <div className="mb-3 grid h-10 w-10 place-items-center rounded-lg bg-primary/12 text-primary">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <CardTitle className="text-base">{feature.title}</CardTitle>
-              </CardHeader>
-            </Card>
-          );
-        })}
-      </section>
-
-      <Card>
-        <CardContent className="grid gap-4 p-6 lg:grid-cols-[0.8fr_1.2fr]">
-          <div>
-            <Badge variant="secondary">Important boundary</Badge>
-            <h2 className="mt-3 text-2xl font-semibold">What ScrollSense AI measures</h2>
-          </div>
-          <p className="text-muted-foreground">
-            This app does not track your phone or private apps. It uses self-reported data,
-            in-app video interaction, and cognitive tests to estimate digital well-being risk
-            for an academic mini-project.
-          </p>
-        </CardContent>
-      </Card>
+        </section>
+      </Reveal>
     </div>
+  );
+}
+
+function FeatureHead({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }>; title: string }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-primary/25 bg-primary/[0.1] text-primary">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <h3 className="font-display text-xl font-medium tracking-tight">{title}</h3>
+    </div>
+  );
+}
+
+function PrivacyShield() {
+  return (
+    <svg viewBox="0 0 160 180" className="mx-auto h-44 w-40 overflow-visible" aria-hidden="true">
+      <defs>
+        <linearGradient id="shield-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" style={{ stopColor: "var(--metal-1)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--metal-3)" }} />
+        </linearGradient>
+      </defs>
+      <m.path
+        d="M80 8 L142 32 V86 C142 128 114 156 80 172 C46 156 18 128 18 86 V32 Z"
+        fill="hsl(var(--primary) / 0.08)"
+        stroke="url(#shield-grad)"
+        strokeWidth="3"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.4, ease: ease.out }}
+      />
+      <m.path
+        d="M52 90 L72 110 L110 66"
+        fill="none"
+        stroke="url(#shield-grad)"
+        strokeWidth="9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8, ease: ease.out, delay: 1 }}
+      />
+    </svg>
   );
 }
 

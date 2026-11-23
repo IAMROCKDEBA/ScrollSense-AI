@@ -2,26 +2,37 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-medium", {
-  variants: {
+const badgeVariants = cva(
+  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium tracking-wide",
+  {
+    variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        outline: "text-foreground",
-        success: "border-[hsl(var(--success)/0.35)] bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success-foreground))]",
-        warning: "border-[hsl(var(--warning)/0.38)] bg-[hsl(var(--warning)/0.14)] text-[hsl(var(--warning-foreground))]",
-        danger: "border-[hsl(var(--danger)/0.38)] bg-[hsl(var(--danger)/0.14)] text-[hsl(var(--danger-foreground))]"
+        secondary: "border-secondary/30 bg-secondary/[0.14] text-foreground",
+        outline: "border-foreground/15 bg-foreground/[0.03] text-foreground/90",
+        success: "border-success/30 bg-success/[0.12] text-success-foreground",
+        warning: "border-warning/35 bg-warning/[0.14] text-warning-foreground",
+        danger: "border-danger/35 bg-danger/[0.14] text-danger-foreground"
       }
-  },
-  defaultVariants: {
-    variant: "default"
+    },
+    defaultVariants: {
+      variant: "default"
+    }
   }
-});
+);
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  /** Adds a small status dot before the label. */
+  dot?: boolean;
+}
 
-export function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+export function Badge({ className, variant, dot, children, ...props }: BadgeProps) {
+  return (
+    <div className={cn(badgeVariants({ variant }), className)} {...props}>
+      {dot ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" /> : null}
+      {children}
+    </div>
+  );
 }

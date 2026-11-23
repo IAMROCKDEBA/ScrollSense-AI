@@ -153,16 +153,16 @@ export function PwaProvider() {
   if (!visible || isStandalone()) return null;
 
   return (
-    <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-50 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[25rem]">
-      <div className="rounded-lg border border-primary/25 bg-card/95 p-4 text-card-foreground shadow-2xl shadow-primary/20 backdrop-blur-xl">
+    <div data-print-hide className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 lg:inset-x-auto lg:bottom-6 lg:right-6 lg:w-[25rem]">
+      <div className="surface surface--raised glass p-4">
         <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-primary/25 bg-primary/[0.12] text-primary">
             <Smartphone className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="font-semibold">Install ScrollSense AI</h2>
+                <h2 className="font-display text-lg font-medium tracking-tight">Install ScrollSense AI</h2>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   Add it to your phone or laptop for a faster standalone experience.
                 </p>
@@ -170,7 +170,7 @@ export function PwaProvider() {
               <button
                 type="button"
                 onClick={dismiss}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-foreground/[0.07] hover:text-foreground"
                 aria-label="Close install prompt"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -178,11 +178,11 @@ export function PwaProvider() {
             </div>
 
             {isiOS && !installEvent ? (
-              <p className="mt-3 rounded-lg border bg-background/55 p-3 text-sm text-muted-foreground">
+              <p className="mt-3 rounded-2xl border border-foreground/10 bg-foreground/[0.04] p-3 text-sm leading-6 text-muted-foreground">
                 On iPhone, tap Share, then Add to Home Screen. After installing, tap the confirmation button below.
               </p>
             ) : !installEvent ? (
-              <p className="mt-3 rounded-lg border bg-background/55 p-3 text-sm text-muted-foreground">
+              <p className="mt-3 rounded-2xl border border-foreground/10 bg-foreground/[0.04] p-3 text-sm leading-6 text-muted-foreground">
                 Preparing the browser install option. Use Chrome or Edge if this button does not become active.
               </p>
             ) : null}

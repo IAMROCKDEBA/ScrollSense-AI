@@ -1,4 +1,4 @@
-const CACHE_NAME = "scrollsense-ai-v12";
+const CACHE_NAME = "scrollsense-ai-v13";
 const APP_SHELL = [
   "/",
   "/onboarding",

@@ -3,14 +3,22 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, Clock3, PlaySquare, TrendingUp, Video, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProgressRing } from "@/components/ui/progress-ring";
+import { CountUp } from "@/components/ui/count-up";
+import { Gauge, toneForRisk } from "@/components/ui/gauge";
+import { PageHeader } from "@/components/ui/page-header";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { Reveal } from "@/components/ui/reveal";
+import { Scrolly, scrollyForRisk } from "@/components/ui/scrolly";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Stat } from "@/components/ui/stat";
 import { Disclaimer } from "@/components/layout/disclaimer";
 import { buildRiskInput } from "@/lib/risk-input";
 import { predictRisk } from "@/lib/risk-engine";
+import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
 import type { RiskCategory } from "@/types";
 
@@ -75,115 +83,164 @@ export default function DashboardPage() {
     urge: Number.isFinite(session.urgeToContinueScore) ? session.urgeToContinueScore : 0
   }));
 
+  const completeness = [
+    { label: "Onboarding", done: Boolean(profile) },
+    { label: "Video session", done: sessions.length > 0 },
+    { label: "Mood check-in", done: moodLogs.length > 0 },
+    { label: "Cognitive tests", done: Boolean(cognitiveResult) }
+  ];
+  const completedCount = completeness.filter((item) => item.done).length;
+
   return (
-    <div className="space-y-6">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-normal">Explainable Dashboard</h1>
-          <p className="mt-2 max-w-3xl text-muted-foreground">
-            A local scoring model combines self-report, session behavior, mood shift, and cognitive results.
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/recommendations">
-            Recommendations
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </Button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Insights"
+        title={
+          <>
+            Your explainable <em className="text-aurora pr-1 italic">dashboard.</em>
+          </>
+        }
+        description="A local scoring model combines self-report, session behavior, mood shift, and cognitive results."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/recommendations">
+              Recommendations
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
+        }
+      />
 
       <Disclaimer />
 
       {!risk ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No assessment result yet</CardTitle>
-            <CardDescription>
-              The dashboard will generate charts and scores after real assessment data is saved.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2">
-            <Button asChild>
-              <Link href="/onboarding">Start onboarding</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/feed">Start video session</Link>
-            </Button>
+        <Card variant="raised">
+          <CardContent className="grid items-center gap-6 p-8 md:grid-cols-[auto_1fr]">
+            <div className="mx-auto">
+              <Scrolly mood="sleepy" size={150} label="Scrolly is waiting for your data" />
+            </div>
+            <div className="space-y-5 text-center md:text-left">
+              <div>
+                <CardTitle className="text-2xl">No assessment result yet</CardTitle>
+                <CardDescription className="mt-2 max-w-xl">
+                  The dashboard will generate charts and scores after real assessment data is saved.
+                </CardDescription>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild>
+                  <Link href="/onboarding">Start onboarding</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/feed">Start video session</Link>
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : null}
 
       <section className="grid gap-5 xl:grid-cols-[0.7fr_0.3fr]">
         {risk ? (
-          <Card>
-            <CardHeader>
-              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <CardTitle>Overall Risk Summary</CardTitle>
-                  <CardDescription>Risk categories: 0-25 Low, 26-50 Moderate, 51-75 High, 76-100 Critical.</CardDescription>
+          <Reveal>
+            <Card variant="raised" className="h-full">
+              <CardHeader>
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-2xl">Overall Risk Summary</CardTitle>
+                    <CardDescription>Risk categories: 0-25 Low, 26-50 Moderate, 51-75 High, 76-100 Critical.</CardDescription>
+                  </div>
+                  <Badge variant={categoryTone[risk.finalRiskCategory]} dot>
+                    {risk.finalRiskCategory}
+                  </Badge>
                 </div>
-                <Badge variant={categoryTone[risk.finalRiskCategory]}>{risk.finalRiskCategory}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <ProgressRing value={risk.addictionRiskScore} label="Risk" tone={risk.addictionRiskScore > 75 ? "red" : risk.addictionRiskScore > 50 ? "orange" : risk.addictionRiskScore > 25 ? "yellow" : "green"} />
-              <ProgressRing value={risk.focusScore} label="Focus" tone="sky" />
-              <ProgressRing value={risk.digitalWellbeingScore} label="Well-being" tone="green" />
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="grid items-center gap-8 lg:grid-cols-[auto_1fr]">
+                  <div className="mx-auto hidden lg:block">
+                    <Scrolly mood={scrollyForRisk(risk.finalRiskCategory)} size={130} />
+                  </div>
+                  <div className="grid justify-items-center gap-6 sm:grid-cols-3">
+                    <Gauge value={risk.addictionRiskScore} label="Risk" tone={toneForRisk(risk.addictionRiskScore)} size={156} />
+                    <Gauge value={risk.focusScore} label="Focus" tone="rose" size={156} />
+                    <Gauge value={risk.digitalWellbeingScore} label="Well-being" tone="jade" size={156} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Reveal>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Data completeness</CardTitle>
-            <CardDescription>The model works with missing values, but more inputs make the estimate better.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Completeness label="Onboarding" done={Boolean(profile)} />
-            <Completeness label="Video session" done={sessions.length > 0} />
-            <Completeness label="Mood check-in" done={moodLogs.length > 0} />
-            <Completeness label="Cognitive tests" done={Boolean(cognitiveResult)} />
-          </CardContent>
-        </Card>
+        <Reveal delay={0.08}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Data completeness</CardTitle>
+              <CardDescription>The model works with missing values, but more inputs make the estimate better.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Inputs provided</span>
+                <span className="font-display text-lg font-medium tabular-nums">{completedCount}/4</span>
+              </div>
+              <ProgressBar value={(completedCount / 4) * 100} label="Data completeness" tone="rose" />
+              <div className="space-y-2 pt-2">
+                {completeness.map((item) => (
+                  <Completeness key={item.label} label={item.label} done={item.done} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </Reveal>
       </section>
 
       {risk ? (
         <section className="grid gap-5 lg:grid-cols-3">
-          <ScoreCard title="Memory Score" value={risk.memoryScore} description="From the memory recall test." />
-          <ScoreCard title="Impulse Control Score" value={risk.impulseControlScore} description="From planned-vs-actual time, urge, and unintentional opening." />
-          <ScoreCard title="Mood Dependency Score" value={risk.moodDependencyScore} description="Higher values mean stronger emotional reliance on scrolling." inverted />
+          <Reveal>
+            <ScoreCard title="Memory Score" value={risk.memoryScore} description="From the memory recall test." />
+          </Reveal>
+          <Reveal delay={0.08}>
+            <ScoreCard title="Impulse Control Score" value={risk.impulseControlScore} description="From planned-vs-actual time, urge, and unintentional opening." />
+          </Reveal>
+          <Reveal delay={0.16}>
+            <ScoreCard title="Mood Dependency Score" value={risk.moodDependencyScore} description="Higher values mean stronger emotional reliance on scrolling." inverted />
+          </Reveal>
         </section>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle>Latest Video Session</CardTitle>
-              <CardDescription>Started sessions are saved immediately and updated while the timer runs.</CardDescription>
+      <Reveal>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <CardTitle>Latest Video Session</CardTitle>
+                <CardDescription>Started sessions are saved immediately and updated while the timer runs.</CardDescription>
+              </div>
+              {latestSession ? (
+                <Badge variant={latestSession.endedAt ? "success" : "warning"} dot>
+                  {latestSession.endedAt ? "Completed" : "In progress"}
+                </Badge>
+              ) : null}
             </div>
+          </CardHeader>
+          <CardContent>
             {latestSession ? (
-              <Badge variant={latestSession.endedAt ? "success" : "warning"}>
-                {latestSession.endedAt ? "Completed" : "In progress"}
-              </Badge>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {latestSession ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <SessionMetric label="Planned" value={`${formatSessionMinutes(latestSession.plannedMinutes)} min`} />
-              <SessionMetric label="Duration" value={`${Math.round(latestSession.durationSeconds / 60)} min`} />
-              <SessionMetric label="Videos" value={String(latestSession.videosWatched)} />
-              <SessionMetric label="Started" value={new Date(latestSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              No video session data yet. Start a feed session to populate the dashboard and report.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat icon={<Timer />} label="Planned" value={`${formatSessionMinutes(latestSession.plannedMinutes)} min`} />
+                <Stat icon={<Clock3 />} label="Duration" value={`${Math.round(latestSession.durationSeconds / 60)} min`} />
+                <Stat icon={<Video />} label="Videos" value={String(latestSession.videosWatched)} />
+                <Stat
+                  icon={<PlaySquare />}
+                  label="Started"
+                  value={new Date(latestSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-foreground/15 p-5 text-sm text-muted-foreground">
+                No video session data yet. Start a feed session to populate the dashboard and report.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Reveal>
 
       {risk ? <BehaviorCharts barData={barData} radarData={radarData} /> : null}
 
@@ -198,14 +255,14 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {risk.topRiskFactors.map((factor, index) => (
-                <div key={factor} className="flex gap-3 rounded-lg border bg-background/55 p-3">
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
+                <div key={factor} className="flex gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-metal font-display text-base font-semibold text-[hsl(300_50%_9%)]">
                     {index + 1}
                   </div>
-                  <div className="text-sm">{factor}</div>
+                  <div className="pt-1 text-sm leading-6">{factor}</div>
                 </div>
               ))}
-              <div className="rounded-lg border bg-muted/35 p-3 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-foreground/10 bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
                 {risk.explanation}
               </div>
             </CardContent>
@@ -229,16 +286,30 @@ function ScoreCard({
 }) {
   const good = inverted ? value < 45 : value >= 70;
   return (
-    <Card>
-      <CardContent className="p-5">
+    <Card className="h-full">
+      <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-sm text-muted-foreground">{title}</div>
-            <div className="mt-2 text-3xl font-semibold">{value}</div>
+            <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">{title}</div>
+            <div className="mt-3 font-display text-5xl font-medium leading-none tracking-tight">
+              <CountUp value={value} />
+            </div>
           </div>
-          <TrendingUp className={good ? "h-5 w-5 text-emerald-400" : "h-5 w-5 text-amber-300"} aria-hidden="true" />
+          <div
+            className={cn(
+              "grid h-10 w-10 place-items-center rounded-xl border",
+              good
+                ? "border-success/30 bg-success/[0.12] text-success-foreground"
+                : "border-warning/35 bg-warning/[0.14] text-warning-foreground"
+            )}
+          >
+            <TrendingUp className="h-5 w-5" aria-hidden="true" />
+          </div>
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">{description}</p>
+        <div className="mt-5">
+          <ProgressBar value={value} label={title} tone={good ? "jade" : "amber"} />
+        </div>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );
@@ -246,18 +317,9 @@ function ScoreCard({
 
 function Completeness({ label, done }: { label: string; done: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border bg-background/55 p-3 text-sm">
+    <div className="flex items-center justify-between rounded-2xl border border-foreground/10 bg-foreground/[0.035] px-4 py-3 text-sm">
       <span>{label}</span>
       <Badge variant={done ? "success" : "outline"}>{done ? "Done" : "Missing"}</Badge>
-    </div>
-  );
-}
-
-function SessionMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-background/55 p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-xl font-semibold">{value}</div>
     </div>
   );
 }
@@ -278,8 +340,9 @@ function ChartGridPlaceholder() {
 function ChartCardPlaceholder() {
   return (
     <Card>
-      <CardContent className="grid h-80 place-items-center p-5 text-sm text-muted-foreground">
-        Loading chart...
+      <CardContent className="h-80 p-6" aria-busy="true" aria-label="Loading chart">
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="mt-6 h-[calc(100%-3rem)] w-full" />
       </CardContent>
     </Card>
   );

@@ -1,5 +1,6 @@
 import { Brain, Database, EyeOff, LockKeyhole, PlaySquare, Shield, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Disclaimer } from "@/components/layout/disclaimer";
 
 const academic = [
@@ -20,23 +21,30 @@ const privacy: Array<[string, LucideIcon]> = [
   ["Server-side video requests", LockKeyhole]
 ];
 
+export const metadata = {
+  title: "Methodology"
+};
+
 export default function MethodologyPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-normal">About and Methodology</h1>
-        <p className="mt-2 max-w-3xl text-muted-foreground">
-          ScrollSense AI is designed as a transparent academic mini-project for digital well-being analysis.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="About"
+        title={
+          <>
+            How the <em className="text-aurora pr-1 italic">method</em> works.
+          </>
+        }
+        description="ScrollSense AI is designed as a transparent academic mini-project for digital well-being analysis."
+      />
 
       <Disclaimer />
 
-      <section className="grid gap-5 lg:grid-cols-2">
+      <section className="grid items-start gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/12 text-primary">
+            <div className="flex items-center gap-4">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl border border-primary/25 bg-primary/[0.1] text-primary">
                 <Brain className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
@@ -47,9 +55,9 @@ export default function MethodologyPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {academic.map(([title, detail]) => (
-              <div key={title} className="rounded-lg border bg-background/55 p-4">
+              <div key={title} className="rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
                 <h2 className="font-medium">{title}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
               </div>
             ))}
           </CardContent>
@@ -62,8 +70,10 @@ export default function MethodologyPage() {
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             {privacy.map(([label, Icon]) => (
-              <div key={label} className="rounded-lg border bg-background/55 p-4">
-                <Icon className="mb-3 h-5 w-5 text-emerald-400" aria-hidden="true" />
+              <div key={label} className="rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
+                <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl border border-success/30 bg-success/[0.12] text-success-foreground">
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </div>
                 <div className="font-medium">{label}</div>
               </div>
             ))}
@@ -71,11 +81,11 @@ export default function MethodologyPage() {
         </Card>
       </section>
 
-      <Card>
+      <Card variant="raised">
         <CardHeader>
-          <CardTitle>Method in plain language</CardTitle>
+          <CardTitle className="text-2xl">Method in plain language</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 leading-7 text-muted-foreground">
+        <CardContent className="space-y-4 leading-8 text-muted-foreground">
           <p>
             The app first asks the student to self-report typical usage, sleep, study time, and automatic scrolling patterns.
             Then it observes only what happens inside this web app: public embedded videos watched, skips, duration, and whether the student continues after a reflective warning.

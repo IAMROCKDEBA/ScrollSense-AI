@@ -1,16 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { fieldControlClass } from "@/components/ui/input";
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
   ({ className, ...props }, ref) => (
-    <textarea
-      className={cn(
-        "focus-ring flex min-h-28 w-full rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      ref={ref}
-      {...props}
-    />
+    <textarea className={cn(fieldControlClass, "flex min-h-28 py-3 leading-6", className)} ref={ref} {...props} />
   )
 );
 Textarea.displayName = "Textarea";

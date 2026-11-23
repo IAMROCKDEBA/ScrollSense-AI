@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import { CheckCircle2, Moon, RefreshCw, Sun, Trash2 } from "lucide-react";
+import { CircleCheck, RefreshCw, TriangleAlert, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { PageHeader } from "@/components/ui/page-header";
+import { Switch } from "@/components/ui/switch";
+import { ThemeSegmented } from "@/components/ui/theme-toggle";
+import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
 import type { YouTubeSearchResponse } from "@/types";
 
@@ -21,7 +22,6 @@ export default function SettingsPage() {
   const demoMode = useAppStore((state) => state.demoMode);
   const setDemoMode = useAppStore((state) => state.setDemoMode);
   const resetAll = useAppStore((state) => state.resetAll);
-  const { theme, setTheme } = useTheme();
   const [feedStatus, setFeedStatus] = useState("Checking video feed...");
   const [feedConnected, setFeedConnected] = useState(false);
   const [dataStatus, setDataStatus] = useState("");
@@ -69,35 +69,44 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-normal">Preferences</h1>
-        <p className="mt-2 text-muted-foreground">Manage the video feed mode, theme, and saved assessment data.</p>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-8">
+      <PageHeader
+        eyebrow="Settings"
+        title={
+          <>
+            Make it <em className="text-aurora pr-1 italic">yours.</em>
+          </>
+        }
+        description="Manage the video feed mode, theme, and saved assessment data."
+      />
 
-      <section className="grid gap-5 lg:grid-cols-2">
+      <section className="grid items-start gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Video feed</CardTitle>
             <CardDescription>ScrollSense AI uses demo videos whenever the live public feed is unavailable.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-lg border bg-background/55 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <CheckCircle2 className={feedConnected ? "h-5 w-5 text-emerald-400" : "h-5 w-5 text-amber-300"} aria-hidden="true" />
-                <span className="min-w-0">{feedStatus}</span>
+            <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3" role="status" aria-live="polite">
+                {feedConnected ? (
+                  <CircleCheck className="h-5 w-5 shrink-0 text-success-foreground" aria-hidden="true" />
+                ) : (
+                  <TriangleAlert className="h-5 w-5 shrink-0 text-warning-foreground" aria-hidden="true" />
+                )}
+                <span className="min-w-0 text-sm">{feedStatus}</span>
               </div>
-              <Badge variant={feedConnected ? "success" : "warning"}>{feedConnected ? "Live" : "Demo"}</Badge>
+              <Badge variant={feedConnected ? "success" : "warning"} dot className="self-start sm:self-auto">
+                {feedConnected ? "Live" : "Demo"}
+              </Badge>
             </div>
 
-            <div className="flex flex-col gap-4 rounded-lg border bg-background/55 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
               <div className="min-w-0">
-                <div className="font-medium">Demo mode</div>
+                <div id="demo-mode-label" className="font-medium">Demo mode</div>
                 <div className="text-sm text-muted-foreground">Force the app to use local demo videos.</div>
               </div>
-              <Button variant={demoMode ? "default" : "outline"} onClick={() => setDemoMode(!demoMode)}>
-                {demoMode ? "On" : "Off"}
-              </Button>
+              <Switch checked={demoMode} onCheckedChange={setDemoMode} aria-labelledby="demo-mode-label" />
             </div>
             <Button variant="outline" onClick={checkStatus}>
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
@@ -111,8 +120,13 @@ export default function SettingsPage() {
             <CardTitle>Appearance and data</CardTitle>
             <CardDescription>Theme and assessment data are saved only in this browser.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border bg-background/55 p-4">
+          <CardContent className="space-y-5">
+            <div className="space-y-3">
+              <div className="text-[0.8125rem] font-medium tracking-wide text-foreground/90">Theme</div>
+              <ThemeSegmented />
+            </div>
+
+            <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.035] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">Saved assessment status</div>
@@ -124,7 +138,7 @@ export default function SettingsPage() {
                       : "Checking saved data..."}
                   </div>
                 </div>
-                <Badge variant={hasSavedAssessmentData ? "warning" : "success"}>
+                <Badge variant={hasSavedAssessmentData ? "warning" : "success"} dot>
                   {hasSavedAssessmentData ? "Data saved" : "Clear"}
                 </Badge>
               </div>
@@ -138,27 +152,14 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Theme</Label>
-              <Select value={theme ?? "system"} onChange={(event) => setTheme(event.target.value)}>
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-                <option value="system">System</option>
-              </Select>
-              <div className="flex gap-2 text-sm text-muted-foreground">
-                <Moon className="h-4 w-4" aria-hidden="true" />
-                <Sun className="h-4 w-4" aria-hidden="true" />
-                Choose whichever is easier to present.
-              </div>
-            </div>
-
             {dataStatus ? (
               <div
-                className={
+                className={cn(
+                  "rounded-2xl border p-3.5 text-sm",
                   isClearingData
-                    ? "rounded-lg border border-amber-500/30 bg-amber-500/12 p-3 text-sm text-amber-200"
-                    : "rounded-lg border border-emerald-500/30 bg-emerald-500/12 p-3 text-sm text-emerald-200"
-                }
+                    ? "border-warning/35 bg-warning/[0.1] text-warning-foreground"
+                    : "border-success/35 bg-success/[0.1] text-success-foreground"
+                )}
                 role="status"
                 aria-live="polite"
               >
@@ -187,7 +188,7 @@ export default function SettingsPage() {
 
 function DataPoint({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border bg-background/45 px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-foreground/10 bg-foreground/[0.03] px-3 py-2.5">
       <span>{label}</span>
       <span className="font-medium text-foreground">{value}</span>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,7 @@ export function MemoryTest() {
   const hideTimerRef = useRef<number | null>(null);
   const [words, setWords] = useState<string[]>([]);
   const [showWords, setShowWords] = useState(false);
+  const [runId, setRunId] = useState(0);
   const [answer, setAnswer] = useState("");
   const [score, setScore] = useState<number | null>(null);
   const [remembered, setRemembered] = useState(0);
@@ -43,6 +45,7 @@ export function MemoryTest() {
     const nextWords = pickWords();
     setWords(nextWords);
     setShowWords(true);
+    setRunId((id) => id + 1);
     setAnswer("");
     setScore(null);
     setRemembered(0);
@@ -61,23 +64,39 @@ export function MemoryTest() {
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
+        <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl border border-primary/25 bg-primary/[0.1] text-primary">
+          <Brain className="h-5 w-5" aria-hidden="true" />
+        </div>
         <CardTitle>Memory Recall Test</CardTitle>
         <CardDescription>Memorize 8 words for 10 seconds, then type the words you remember.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-lg border bg-background/60 p-4">
+        <div className="min-h-48 rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-4">
           {showWords ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {words.map((word) => (
-                <div key={word} className="rounded-lg bg-muted p-3 text-center font-medium">
-                  {word}
-                </div>
-              ))}
+            <div key={runId} className="space-y-4">
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-foreground/10"
+                role="timer"
+                aria-label="Words are visible for 10 seconds"
+              >
+                <div className="h-full origin-left rounded-full bg-metal animate-[countdown_10s_linear_forwards]" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {words.map((word, index) => (
+                  <div
+                    key={word}
+                    className="rise rounded-2xl border border-foreground/10 bg-foreground/[0.06] p-3 text-center font-display text-lg font-medium tracking-tight"
+                    style={{ "--i": index } as React.CSSProperties}
+                  >
+                    {word}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="grid h-full min-h-40 place-items-center text-center text-sm text-muted-foreground">
               {words.length ? "Words are hidden. Type what you remember." : "Press Start to generate words."}
             </p>
           )}
@@ -86,6 +105,7 @@ export function MemoryTest() {
           value={answer}
           onChange={(event) => setAnswer(event.target.value)}
           placeholder="Type remembered words separated by spaces or commas"
+          aria-label="Words you remember"
           disabled={showWords || words.length === 0}
         />
         <div className="flex flex-wrap gap-2">
@@ -95,7 +115,7 @@ export function MemoryTest() {
           </Button>
         </div>
         {score !== null ? (
-          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+          <div role="status" className="rounded-2xl border border-success/40 bg-success/[0.1] p-4 text-sm text-success-foreground">
             Memory score: <span className="font-semibold">{score}/100</span> ({remembered}/8 words)
           </div>
         ) : null}
